@@ -1,8 +1,13 @@
-#include <gif_lib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
+#ifdef COMPILE_GIFLIB
+#	include "giflib-5.0.5/lib/gif_lib.h"
+#else
+#	include <gif_lib.h>
+#endif
 
 #include "sprite.h"
 

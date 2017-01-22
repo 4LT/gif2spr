@@ -21,6 +21,7 @@
 *.dylib
 
 # Executables
+gif2spr
 *.exe
 *.out
 *.app
@@ -31,3 +32,8 @@
 # Debug files
 *.dSYM/
 *.su
+
+# Temporary files
+*.swp
+
+giflib-5.0.5.tar.gz
