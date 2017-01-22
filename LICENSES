@@ -1,0 +1,5 @@
+gif2spr source files are licensed under the zlib license, provided in the source
+files.
+
+gif2spr uses GIFLIB, which is licensed under the MIT license.  Its license is
+available in giflib-5.0.5/COPYING.
