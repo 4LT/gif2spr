@@ -1,10 +1,9 @@
 GIFLIB=giflib-5.1.4
-CFLAGS ::= -std=c99 -Wall -pedantic -ggdb
+CFLAGS := -std=c99 -Wall -pedantic -ggdb
 LOCAL_OBJECTS= main.o sprite.o
 GIFLIB_OBJECTS= $(GIFLIB)/lib/dgif_lib.o $(GIFLIB)/lib/gif_err.o \
 	$(GIFLIB)/lib/gif_hash.o $(GIFLIB)/lib/gifalloc.o
-OBJECTS ::= $(LOCAL_OBJECTS)
-LDFLAGS ::= -lm
+OBJECTS := $(LOCAL_OBJECTS)
 
 ifeq ($(findstring CYGWIN, $(shell uname)), CYGWIN)
 	COMPILE_GIFLIB=true
@@ -13,11 +12,17 @@ else
 	CC=cc
 endif
 
-ifdef COMPILE_GIFLIB
-	CFLAGS  ::= $(CFLAGS) -DCOMPILE_GIFLIB
-	OBJECTS ::= $(OBJECTS) $(GIFLIB_OBJECTS)
+ifeq ($(shell uname), Darwin)
+	COMPILE_GIFLIB=true
 else
-	LDFLAGS ::= -lgif $(LDFLAGS)
+	LDFLAGS := $(LD_FLAGS) -lm
+endif
+
+ifdef COMPILE_GIFLIB
+	CFLAGS  := $(CFLAGS) -DCOMPILE_GIFLIB
+	OBJECTS := $(OBJECTS) $(GIFLIB_OBJECTS)
+else
+	LDFLAGS := $(LDFLAGS) -lgif
 endif
 
 .PHONY=all clean

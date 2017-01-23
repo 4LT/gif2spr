@@ -27,7 +27,7 @@
 #include <math.h>
 
 #ifdef COMPILE_GIFLIB
-#	include "giflib-5.0.5/lib/gif_lib.h"
+#	include "giflib-5.1.4/lib/gif_lib.h"
 #else
 #	include <gif_lib.h>
 #endif
