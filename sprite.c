@@ -33,7 +33,7 @@
 int32_t const FRAME_SINGLE = 0;
 int32_t const FRAME_GROUP = 1;
 char const *const DEFPAL_FILENAME = "defpal.lmp";
-int const RED_SCALE = 40;
+int const RED_SCALE = 30;
 int const GREEN_SCALE = 59;
 int const BLUE_SCALE = 11;
 
