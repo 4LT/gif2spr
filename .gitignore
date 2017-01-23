@@ -21,6 +21,7 @@
 *.dylib
 
 # Executables
+gif2spr
 *.exe
 *.out
 *.app
