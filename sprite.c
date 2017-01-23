@@ -33,7 +33,7 @@
 int32_t const FRAME_SINGLE = 0;
 int32_t const FRAME_GROUP = 1;
 char const *const DEFPAL_FILENAME = "defpal.lmp";
-int const RED_SCALE = 30;
+int const RED_SCALE = 40;
 int const GREEN_SCALE = 59;
 int const BLUE_SCALE = 11;
 
@@ -89,8 +89,7 @@ struct Spr_Sprite
 
 float dist(int32_t dx, int32_t dy)
 {
-    float d = sqrtf(dx*dx + dy*dy);
-    return d*d;
+    return sqrtf(dx*dx + dy*dy);
 }
 
 struct Spr_Sprite *Spr_New(
@@ -309,25 +308,28 @@ void Spr_DefaultPalette(struct Spr_Color *palette)
     memcpy(palette, DEFPAL, sizeof(*palette) * SPR_PAL_SIZE);
 }
 
-int colorDistance(struct Spr_Color color1, struct Spr_Color color2)
+double colorDistance(struct Spr_Color color1, struct Spr_Color color2)
 {
     int deltas[3];
     for (int i = 0; i < 3; i++) {
-        deltas[i] = (int)color1.rgb[i] - color2.rgb[i];
+        deltas[i] = (int)(color1.rgb[i]) - color2.rgb[i];
         if (deltas[i] < 0) deltas[i] = -deltas[i];
     }
-    return RED_SCALE   * deltas[0] +
-           GREEN_SCALE * deltas[1] +
-           BLUE_SCALE  * deltas[2];
+    deltas[0]*= RED_SCALE;
+    deltas[1]*= GREEN_SCALE;
+    deltas[2]*= BLUE_SCALE;
+    return sqrt(deltas[0]*deltas[0]
+              + deltas[1]*deltas[1]
+              + deltas[2]*deltas[2]);
 }
 
 char Spr_NearestIndex(struct Spr_Color *palette, struct Spr_Color color)
 {
-    int minDist = 255 * (RED_SCALE + GREEN_SCALE + BLUE_SCALE);
+    double minDist = 255 * (RED_SCALE + GREEN_SCALE + BLUE_SCALE);
     char nearestIndex = 0;
     for (int i = 0; i < SPR_PAL_SIZE; i++) {
         if (i != SPR_TRANS_INDEX) {
-            int distance = colorDistance(palette[i], color);
+            double distance = colorDistance(palette[i], color);
             if (distance < minDist) {
                 minDist = distance;
                 nearestIndex = i;
