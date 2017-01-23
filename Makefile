@@ -1,4 +1,4 @@
-GIFLIB=giflib-5.0.5
+GIFLIB=giflib-5.1.4
 CFLAGS ::= -std=c99 -Wall -pedantic -ggdb
 LOCAL_OBJECTS= main.o sprite.o
 GIFLIB_OBJECTS= $(GIFLIB)/lib/dgif_lib.o $(GIFLIB)/lib/gif_err.o \
