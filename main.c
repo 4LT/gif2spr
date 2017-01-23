@@ -132,7 +132,6 @@ int main(int argc, char *argv[])
 
     int loadErr = loadArgs(argc, argv);
     if (loadErr != 0) {
-        fprintf(stderr, "%d\n", loadErr);
         fputs("USAGE: gif2spr [-p|-palette PALFILE] [-origin X,Y] "
               "GIFFILE SPRFILE\n", stderr);
         fputs("    PALFILE  Palette lump.\n", stderr);
