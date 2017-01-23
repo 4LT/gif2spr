@@ -4,7 +4,7 @@ LOCAL_OBJECTS= main.o sprite.o
 GIFLIB_OBJECTS= $(GIFLIB)/lib/dgif_lib.o $(GIFLIB)/lib/gif_err.o \
 	$(GIFLIB)/lib/gif_hash.o $(GIFLIB)/lib/gifalloc.o
 OBJECTS ::= $(LOCAL_OBJECTS)
-LD_FLAGS ::= -lm
+LDFLAGS ::= -lm
 
 ifeq ($(findstring CYGWIN, $(shell uname)), CYGWIN)
 	COMPILE_GIFLIB=true
@@ -17,7 +17,7 @@ ifdef COMPILE_GIFLIB
 	CFLAGS  ::= $(CFLAGS) -DCOMPILE_GIFLIB
 	OBJECTS ::= $(OBJECTS) $(GIFLIB_OBJECTS)
 else
-	LD_FLAGS ::= $(LD_FLAGS) -lgif
+	LDFLAGS ::= -lgif $(LDFLAGS)
 endif
 
 .PHONY=all clean
