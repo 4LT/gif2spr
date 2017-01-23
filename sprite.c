@@ -1,3 +1,26 @@
+/* gif2spr -- utility for converting GIF images to Quake sprites
+ * version 0.1, January 22nd, 2017
+ * 
+ * Copyright (C) 2017 Seth "4LT" Rader
+ * 
+ * This software is provided 'as-is', without any express or implied
+ * warranty.  In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ * 
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions:
+ * 
+ * 1. The origin of this software must not be misrepresented; you must not
+ *    claim that you wrote the original software. If you use this software
+ *    in a product, an acknowledgment in the product documentation would be
+ *    appreciated but is not required.
+ * 2. Altered source versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.
+ * 3. This notice may not be removed or altered from any source distribution.
+ * 
+ * Seth Rader      rader.seth@gmail.com
+ */
 #include "sprite.h"
 
 #include <stdio.h>
@@ -10,7 +33,7 @@
 int32_t const FRAME_SINGLE = 0;
 int32_t const FRAME_GROUP = 1;
 char const *const DEFPAL_FILENAME = "defpal.lmp";
-int const RED_SCALE = 30;
+int const RED_SCALE = 40;
 int const GREEN_SCALE = 59;
 int const BLUE_SCALE = 11;
 
@@ -66,8 +89,7 @@ struct Spr_Sprite
 
 float dist(int32_t dx, int32_t dy)
 {
-    float d = sqrtf(dx*dx + dy*dy);
-    return d*d;
+    return sqrtf(dx*dx + dy*dy);
 }
 
 struct Spr_Sprite *Spr_New(
@@ -286,25 +308,28 @@ void Spr_DefaultPalette(struct Spr_Color *palette)
     memcpy(palette, DEFPAL, sizeof(*palette) * SPR_PAL_SIZE);
 }
 
-int colorDistance(struct Spr_Color color1, struct Spr_Color color2)
+double colorDistance(struct Spr_Color color1, struct Spr_Color color2)
 {
     int deltas[3];
     for (int i = 0; i < 3; i++) {
-        deltas[i] = color1.rgb[i] - color2.rgb[i];
+        deltas[i] = (int)(color1.rgb[i]) - color2.rgb[i];
         if (deltas[i] < 0) deltas[i] = -deltas[i];
     }
-    return RED_SCALE   * deltas[0] +
-           GREEN_SCALE * deltas[1] +
-           BLUE_SCALE  * deltas[2];
+    deltas[0]*= RED_SCALE;
+    deltas[1]*= GREEN_SCALE;
+    deltas[2]*= BLUE_SCALE;
+    return sqrt(deltas[0]*deltas[0]
+              + deltas[1]*deltas[1]
+              + deltas[2]*deltas[2]);
 }
 
 char Spr_NearestIndex(struct Spr_Color *palette, struct Spr_Color color)
 {
-    int minDist = 255 * (RED_SCALE + GREEN_SCALE + BLUE_SCALE);
+    double minDist = 255 * (RED_SCALE + GREEN_SCALE + BLUE_SCALE);
     char nearestIndex = 0;
     for (int i = 0; i < SPR_PAL_SIZE; i++) {
         if (i != SPR_TRANS_INDEX) {
-            int distance = colorDistance(palette[i], color);
+            double distance = colorDistance(palette[i], color);
             if (distance < minDist) {
                 minDist = distance;
                 nearestIndex = i;
