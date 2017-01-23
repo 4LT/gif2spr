@@ -2,7 +2,8 @@ GIFLIB=giflib-5.1.4
 CFLAGS := -std=c99 -Wall -pedantic -ggdb
 LOCAL_OBJECTS= main.o sprite.o
 GIFLIB_OBJECTS= $(GIFLIB)/lib/dgif_lib.o $(GIFLIB)/lib/gif_err.o \
-	$(GIFLIB)/lib/gif_hash.o $(GIFLIB)/lib/gifalloc.o
+	$(GIFLIB)/lib/gif_hash.o $(GIFLIB)/lib/gifalloc.o \
+	$(GIFLIB)/lib/openbsd-reallocarray.o
 OBJECTS := $(LOCAL_OBJECTS)
 
 ifeq ($(findstring CYGWIN, $(shell uname)), CYGWIN)
