@@ -30,7 +30,9 @@ $(GIFLIB_OBJECTS): $(GIFLIB)/Makefile
 $(GIFLIB)/Makefile:
 	cd $(GIFLIB); \
 	./configure; \
-	sed 's/\(CC =\) gcc/\1 $(CC)/' -i Makefile
+	sed 's/^\(CC =\) gcc/\1 $(CC)/' -i Makefile; \
+	cd lib; \
+	sed 's/^\(CC =\) gcc/\1 $(CC)/' -i Makefile
 
 main.o: main.c
 	$(CC) $(CFLAGS) -c main.c
@@ -44,3 +46,4 @@ gif2spr: $(OBJECTS)
 clean:
 	rm -f $(LOCAL_OBJECTS)
 	rm -f gif2spr
+	make -C $(GIFLIB) -f Makefile distclean

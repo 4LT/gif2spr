@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
     
     if (DGifSlurp(gifFile) == GIF_ERROR) {
         fprintf(stderr, "%s:\n", gifFileName);
-        fprintf(stderr, "%s\n", GifErrorString(err));
+        fputs("Failed to load file.\n", stderr);
         exit(EXIT_FAILURE);
     }
 
