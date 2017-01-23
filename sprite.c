@@ -313,7 +313,7 @@ int colorDistance(struct Spr_Color color1, struct Spr_Color color2)
 {
     int deltas[3];
     for (int i = 0; i < 3; i++) {
-        deltas[i] = color1.rgb[i] - color2.rgb[i];
+        deltas[i] = (int)color1.rgb[i] - color2.rgb[i];
         if (deltas[i] < 0) deltas[i] = -deltas[i];
     }
     return RED_SCALE   * deltas[0] +
