@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 
     if (gifFile == NULL) {
         fprintf(stderr, "%s:\n", gifFileName);
-        fprintf(stderr, "%s\n", GifErrorString(err));
+        fprintf(stderr, "%s.\n", GifErrorString(err));
         exit(EXIT_FAILURE);
     }
     
