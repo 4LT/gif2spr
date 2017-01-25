@@ -34,11 +34,8 @@ $(GIFLIB_OBJECTS): $(GIFLIB)/Makefile
 	make -C $(GIFLIB) -f Makefile
 
 $(GIFLIB)/Makefile:
-	cd $(GIFLIB); \
-	./configure; \
-	sed 's/^\(CC =\) gcc/\1 $(CC)/' -i Makefile; \
-	cd lib; \
-	sed 's/^\(CC =\) gcc/\1 $(CC)/' -i Makefile
+	cd $(GIFLIB) && \
+	CC=$(CC) ./configure
 
 main.o: main.c
 	$(CC) $(CFLAGS) -c main.c
