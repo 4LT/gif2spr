@@ -134,9 +134,12 @@ int main(int argc, char *argv[])
     if (loadErr != 0) {
         fputs("USAGE: gif2spr [-p|-palette PALFILE] [-origin X,Y] "
               "GIFFILE SPRFILE\n", stderr);
-        fputs("    PALFILE  Palette lump.\n", stderr);
-        fputs("    X        Decimal origin X component.\n", stderr);
-        fputs("    Y        Decimal origin Y component.\n", stderr);
+        fputs("    PALFILE  Palette lump. Defaults to Quake palette.\n",
+                stderr);
+        fputs("    X        Decimal origin X component. "
+                "Defaults to 0.5 (center).\n", stderr);
+        fputs("    Y        Decimal origin Y component. "
+                "Defaults to 0.5 (center).\n", stderr);
         fputs("    GIFFILE  Input GIF file.\n", stderr);
         fputs("    SPRFILE  Output SPRITE file.\n", stderr);
         exit(EXIT_FAILURE);
