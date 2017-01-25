@@ -47,10 +47,19 @@ void sprFatalError(char const *errString)
     exit(EXIT_FAILURE);
 }
 
+#define N_ALIGNMENTS 5
+static const char *ALIGNMENT_NAMES[N_ALIGNMENTS] = {
+    "vp-parallel-upright",
+    "upright",
+    "vp-parallel",
+    "oriented",
+    "vp-parallel-oriented" };
+
 static char *gifFileName = NULL;
 static char *sprFileName = NULL;
 static char *palFileName = NULL;
 static char *originString = NULL;
+static char *alignmentOption = NULL;
 
 int loadArgs(int argc, char *argv[])
 {
@@ -70,9 +79,16 @@ int loadArgs(int argc, char *argv[])
                     return 2;
                 palFileName = argv[i];
             }
+            else if (strcmp(argv[i], "-alignment") == 0 ||
+                     strcmp(argv[i], "-a") == 0) {
+                i++;
+                if (i >= argc)
+                    return 3;
+                alignmentOption = argv[i];
+            }
             else {
-                fprintf(stderr, "Unknown argument \"%s\"\n", argv[i]);
-                return 3;
+                fprintf(stderr, "Unknown option \"%s\"\n", argv[i]);
+                return 4;
             }
         }
         else if (gifFileName == NULL) {
@@ -82,12 +98,12 @@ int loadArgs(int argc, char *argv[])
             sprFileName = argv[i];
         }
         else {
-            return 4;
+            return 5;
         }
     }
     
     if (sprFileName == NULL)
-        return 5;
+        return 6;
     else
         return 0;
 }
@@ -128,20 +144,30 @@ int main(int argc, char *argv[])
     struct Spr_Color *sprPalette;
     struct Spr_Image *images;
     struct Vec2D origin;
+    int alignment = -1;
     char paletteLookup[SPR_PAL_SIZE];
-
     int loadErr = loadArgs(argc, argv);
+
     if (loadErr != 0) {
-        fputs("USAGE: gif2spr [-p|-palette PALFILE] [-origin X,Y] "
-              "GIFFILE SPRFILE\n", stderr);
-        fputs("    PALFILE  Palette lump. Defaults to Quake palette.\n",
+        /*              1         2         3         4         5         6
+         *     123456789012345678901234567890123456789012345678901234567890123*/
+        fputs("USAGE: gif2spr [-a|-alignment ALIGNMENT] [-p|-palette PALFILE] "
+        /*             7       
+         *       4567890123456*/
+                "[-origin X,Y]\n", stderr);
+        fputs("       GIFFILE SPRFILE\n\n", stderr);
+        fputs("    ALIGNMENT Sprite orientation. Options "
+                "(defaults to vp-parallel):\n", stderr);
+        for (int i = 0; i < N_ALIGNMENTS; i++)
+            fprintf(stderr, "        %s\n", ALIGNMENT_NAMES[i]);
+        fputs("    PALFILE   Palette lump. Defaults to Quake palette.\n",
                 stderr);
-        fputs("    X        Decimal origin X component. "
+        fputs("    X         Decimal origin X component. "
                 "Defaults to 0.5 (center).\n", stderr);
-        fputs("    Y        Decimal origin Y component. "
+        fputs("    Y         Decimal origin Y component. "
                 "Defaults to 0.5 (center).\n", stderr);
-        fputs("    GIFFILE  Input GIF file.\n", stderr);
-        fputs("    SPRFILE  Output SPRITE file.\n", stderr);
+        fputs("    GIFFILE   Input GIF file.\n", stderr);
+        fputs("    SPRFILE   Output SPRITE file.\n", stderr);
         exit(EXIT_FAILURE);
     }
 
@@ -166,8 +192,24 @@ int main(int argc, char *argv[])
         Spr_DefaultPalette(sprPalette);
 
     origin = parseOrigin(originString);
+
+    if (alignmentOption == NULL) {
+        alignment = SPR_ALIGN_VP_PARALLEL;
+    }
+    else
+    {
+        for ( int i = 0; i < N_ALIGNMENTS && alignment == -1; i++) {
+            if (strcmp(alignmentOption, ALIGNMENT_NAMES[i]) == 0)
+                alignment = i;
+        }
+        if (alignment == -1) {
+            fprintf(stderr, "Unknown alignment type \"%s\"\n", alignmentOption);
+            exit(EXIT_FAILURE);
+        }
+    }
+
     sprite = Spr_New(
-            SPR_ALIGN_VP_PARALLEL,
+            alignment,
             gifFile->SWidth,
             gifFile->SHeight,
             SPR_SYNC_YES,
