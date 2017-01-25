@@ -49,7 +49,9 @@ sprite.o: sprite.c
 gif2spr: $(OBJECTS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o gif2spr $(OBJECTS)
 
+clean-giflib:
+	make -C $(GIFLIB) -f Makefile distclean
+
 clean:
 	rm -f $(LOCAL_OBJECTS)
 	rm -f gif2spr
-	make -C $(GIFLIB) -f Makefile distclean
