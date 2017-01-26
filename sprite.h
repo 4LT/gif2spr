@@ -65,7 +65,7 @@ struct Spr_Sprite;
 
 struct Spr_Color
 {
-    char rgb[3];
+    unsigned char rgb[3];
 };
 
 struct Spr_Image

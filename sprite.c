@@ -33,9 +33,6 @@
 int32_t const FRAME_SINGLE = 0;
 int32_t const FRAME_GROUP = 1;
 char const *const DEFPAL_FILENAME = "defpal.lmp";
-int const RED_SCALE = 30;
-int const GREEN_SCALE = 59;
-int const BLUE_SCALE = 11;
 
 /* .spr file header. */
 struct Header
@@ -313,19 +310,14 @@ double colorDistance(struct Spr_Color color1, struct Spr_Color color2)
     int deltas[3];
     for (int i = 0; i < 3; i++) {
         deltas[i] = (int)(color1.rgb[i]) - color2.rgb[i];
-        if (deltas[i] < 0) deltas[i] = -deltas[i];
+        deltas[i]*= deltas[i];
     }
-    deltas[0]*= RED_SCALE;
-    deltas[1]*= GREEN_SCALE;
-    deltas[2]*= BLUE_SCALE;
-    return sqrt(deltas[0]*deltas[0]
-              + deltas[1]*deltas[1]
-              + deltas[2]*deltas[2]);
+    return sqrt(deltas[0] + deltas[1] + deltas[2]);
 }
 
 char Spr_NearestIndex(struct Spr_Color *palette, struct Spr_Color color)
 {
-    double minDist = 255 * (RED_SCALE + GREEN_SCALE + BLUE_SCALE);
+    double minDist = 255 * 3;
     char nearestIndex = 0;
     for (int i = 0; i < SPR_PAL_SIZE; i++) {
         if (i != SPR_TRANS_INDEX) {
