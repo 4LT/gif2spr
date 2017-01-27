@@ -1,7 +1,7 @@
-/* gif2spr -- utility for converting GIF images to Quake sprites
+/* sprite.h -- Sprite manipulation interface.
  * version 0.1, January 22nd, 2017
  * 
- * Copyright (C) 2017 Seth "4LT" Rader
+ * Copyright (C) 2017 Seth Rader
  * 
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
