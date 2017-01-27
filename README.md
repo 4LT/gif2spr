@@ -32,7 +32,7 @@ Building
 
 Run `make` to create a standalone executable.
 
-Run `make pkg-win` to create a .zip archive containing executable, readme, and license agreements.
+Run `make package` to create a .zip archive containing executable, readme, and license agreements.
 
 Unsupported Features
 --------------------

@@ -28,7 +28,7 @@ else
 	LDFLAGS := $(LDFLAGS) -lgif
 endif
 
-.PHONY=all clean clean-giflib pkg-win
+.PHONY=all clean clean-giflib package
 
 all: $(OUTPUT)
 
@@ -48,7 +48,7 @@ sprite.o: sprite.c
 $(OUTPUT): $(OBJECTS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(OUTPUT) $(OBJECTS)
 
-pkg-win: gif2spr.zip
+package: gif2spr.zip
 
 gif2spr.zip: COPYING README.md $(OUTPUT)
 	zip gif2spr.zip COPYING README.md $(OUTPUT)
