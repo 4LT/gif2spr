@@ -8,8 +8,10 @@ OBJECTS := $(LOCAL_OBJECTS)
 
 ifeq ($(findstring CYGWIN, $(shell uname)), CYGWIN)
 	COMPILE_GIFLIB=true
+	OUTPUT=gif2spr.exe
 	CC=i686-w64-mingw32-gcc
 else
+	OUTPUT=gif2spr
 	CC=cc
 endif
 
@@ -26,9 +28,9 @@ else
 	LDFLAGS := $(LDFLAGS) -lgif
 endif
 
-.PHONY=all clean
+.PHONY=all clean clean-giflib pkg-win
 
-all: gif2spr
+all: $(OUTPUT)
 
 $(GIFLIB_OBJECTS): $(GIFLIB)/Makefile
 	make -C $(GIFLIB) -f Makefile
@@ -43,8 +45,13 @@ main.o: main.c
 sprite.o: sprite.c
 	$(CC) $(CFLAGS) -c sprite.c
 
-gif2spr: $(OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o gif2spr $(OBJECTS)
+$(OUTPUT): $(OBJECTS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(OUTPUT) $(OBJECTS)
+
+pkg-win: gif2spr.zip
+
+gif2spr.zip: COPYING README.md $(OUTPUT)
+	zip gif2spr.zip COPYING README.md $(OUTPUT)
 
 clean-giflib:
 	make -C $(GIFLIB) -f Makefile distclean
