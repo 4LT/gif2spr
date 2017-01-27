@@ -37,7 +37,10 @@ $(GIFLIB)/Makefile:
 	cd $(GIFLIB) && \
 	CC=$(CC) ./configure
 
-main.o: main.c
+defpal.h: defpal.h_head defpal.h_foot quakepal
+	./generate_palette.sh
+
+main.o: main.c defpal.h
 	$(CC) $(CFLAGS) -c main.c
 
 sprite.o: sprite.c
