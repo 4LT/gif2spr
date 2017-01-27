@@ -27,4 +27,12 @@ Creates a sprite, but color quantization is performed matching the colors from a
 
 Building
 --------
+
 Run ```make``` to create a standalone executable.
+
+Unsupported Features
+--------------------
+
+* Multiple sequences, all images are placed in the same frame group.
+* GIF's local palettes.
+* GIF's disposal modes (entire image is re-drawn).
