@@ -106,9 +106,9 @@ void Spr_AppendSingleFrame(struct Spr_Sprite *sprite,
     struct Spr_Image const *img);
 
 /* Append a group of nImages frames, copying image data provided.
- * delay - delay for each image
+ * delays - delay for each image in seconds
  */
-void Spr_AppendGroupFrame(struct Spr_Sprite *sprite, float delay,
+void Spr_AppendGroupFrame(struct Spr_Sprite *sprite, float const *delays,
         struct Spr_Image const *imgs, size_t nImages);
 
 /* Write a sprite out to file.

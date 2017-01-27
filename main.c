@@ -143,6 +143,7 @@ int main(int argc, char *argv[])
     struct Spr_Sprite *sprite;
     struct Spr_Color *sprPalette;
     struct Spr_Image *images;
+    float *delays;
     struct Vec2D origin;
     int alignment = -1;
     char paletteLookup[SPR_PAL_SIZE];
@@ -227,6 +228,7 @@ int main(int argc, char *argv[])
     }
 
     images = malloc(sizeof(*images) * gifFile->ImageCount);
+    delays = malloc(sizeof(*delays) * gifFile->ImageCount);
     for (int i = 0; i < gifFile->ImageCount; i++) {
         SavedImage gifImage = gifFile->SavedImages[i];
         GifImageDesc imgDesc = gifImage.ImageDesc;
@@ -245,6 +247,8 @@ int main(int argc, char *argv[])
         else
             gifTransIndex = gcb.TransparentColor;
 
+        delays[i] = gcb.DelayTime * 0.01; /* convert to seconds */
+
         for (size_t j = 0; j < pixCount; j++) {
             char color = gifImage.RasterBits[j];
             if (color == gifTransIndex)
@@ -254,7 +258,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    Spr_AppendGroupFrame(sprite, (float)1/gifFile->ImageCount, images,
+    Spr_AppendGroupFrame(sprite, delays, images,
             gifFile->ImageCount);
     Spr_Write(sprite, sprFileName, sprFatalError);
     Spr_Free(sprite);

@@ -27,12 +27,12 @@
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
+#include <float.h>
 
 #include "defpal.h"
 
 int32_t const FRAME_SINGLE = 0;
 int32_t const FRAME_GROUP = 1;
-char const *const DEFPAL_FILENAME = "defpal.lmp";
 
 /* .spr file header. */
 struct Header
@@ -176,19 +176,21 @@ void Spr_AppendSingleFrame(struct Spr_Sprite *sprite,
     appendFrame(sprite, frame);
 }
 
-void Spr_AppendGroupFrame(struct Spr_Sprite *sprite, float delay,
+void Spr_AppendGroupFrame(struct Spr_Sprite *sprite, float const *delays,
         struct Spr_Image const *imgs, size_t nImages)
 {
     union Frame frame;
     size_t imagesSz = sizeof(struct Spr_Image) * nImages;
     float *imgKeys = malloc(sizeof(float) * nImages);
+    float keyTime = 0;
     frame.group = (struct GroupFrame) { FRAME_GROUP, nImages, imgKeys, NULL };
     frame.group.images =
             (struct Spr_Image *)malloc(imagesSz);
     memcpy(frame.group.images, imgs, imagesSz);
     for (int i = 0; i < nImages; i++) {
         size_t rasterSz = imgs[i].width * imgs[i].height;
-        imgKeys[i] = delay * (i+1);
+        keyTime+= delays[i] > 0 ? delays[i] : FLT_MIN;
+        imgKeys[i] = keyTime;
         frame.group.images[i].raster = malloc(rasterSz);
         memcpy(frame.group.images[i].raster, imgs[i].raster, rasterSz);
     }
