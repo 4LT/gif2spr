@@ -35,3 +35,7 @@ gif2spr
 
 # Temporary files
 *.swp
+
+# Generated files
+gif2spr.zip
+defpal.h
