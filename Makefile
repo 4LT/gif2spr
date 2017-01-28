@@ -33,7 +33,7 @@ endif
 all: $(OUTPUT)
 
 $(GIFLIB_OBJECTS): $(GIFLIB)/Makefile
-	make -C $(GIFLIB) -f Makefile
+	make -C $(GIFLIB) -f Makefile SUBDIRS=lib
 
 $(GIFLIB)/Makefile:
 	cd $(GIFLIB) && \
