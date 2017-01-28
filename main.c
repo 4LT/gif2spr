@@ -1,7 +1,7 @@
-/* gif2spr -- utility for converting GIF images to Quake sprites
+/* main.c -- gif2spr entrypoint.
  * version 0.1, January 22nd, 2017
  * 
- * Copyright (C) 2017 Seth "4LT" Rader
+ * Copyright (C) 2017 Seth Rader
  * 
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -143,6 +143,7 @@ int main(int argc, char *argv[])
     struct Spr_Sprite *sprite;
     struct Spr_Color *sprPalette;
     struct Spr_Image *images;
+    float *delays;
     struct Vec2D origin;
     int alignment = -1;
     char paletteLookup[SPR_PAL_SIZE];
@@ -227,6 +228,7 @@ int main(int argc, char *argv[])
     }
 
     images = malloc(sizeof(*images) * gifFile->ImageCount);
+    delays = malloc(sizeof(*delays) * gifFile->ImageCount);
     for (int i = 0; i < gifFile->ImageCount; i++) {
         SavedImage gifImage = gifFile->SavedImages[i];
         GifImageDesc imgDesc = gifImage.ImageDesc;
@@ -245,6 +247,8 @@ int main(int argc, char *argv[])
         else
             gifTransIndex = gcb.TransparentColor;
 
+        delays[i] = gcb.DelayTime * 0.01; /* convert to seconds */
+
         for (size_t j = 0; j < pixCount; j++) {
             char color = gifImage.RasterBits[j];
             if (color == gifTransIndex)
@@ -254,7 +258,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    Spr_AppendGroupFrame(sprite, (float)1/gifFile->ImageCount, images,
+    Spr_AppendGroupFrame(sprite, delays, images,
             gifFile->ImageCount);
     Spr_Write(sprite, sprFileName, sprFatalError);
     Spr_Free(sprite);

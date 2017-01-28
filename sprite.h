@@ -1,7 +1,7 @@
-/* gif2spr -- utility for converting GIF images to Quake sprites
+/* sprite.h -- Sprite manipulation interface.
  * version 0.1, January 22nd, 2017
  * 
- * Copyright (C) 2017 Seth "4LT" Rader
+ * Copyright (C) 2017 Seth Rader
  * 
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
@@ -106,9 +106,9 @@ void Spr_AppendSingleFrame(struct Spr_Sprite *sprite,
     struct Spr_Image const *img);
 
 /* Append a group of nImages frames, copying image data provided.
- * delay - delay for each image
+ * delays - delay for each image in seconds
  */
-void Spr_AppendGroupFrame(struct Spr_Sprite *sprite, float delay,
+void Spr_AppendGroupFrame(struct Spr_Sprite *sprite, float const *delays,
         struct Spr_Image const *imgs, size_t nImages);
 
 /* Write a sprite out to file.
