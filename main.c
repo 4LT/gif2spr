@@ -238,8 +238,8 @@ int main(int argc, char *argv[])
             gifFile->SHeight,
             SPR_SYNC_YES,
             sprPalette,
-            (int32_t)(  -origin.x  * gifFile->SWidth),
-            (int32_t)((1-origin.y) * gifFile->SHeight) );
+            (int32_t)floor(  -origin.x  * gifFile->SWidth),
+            (int32_t)floor((1-origin.y) * gifFile->SHeight) );
 
     gifColorMap = gifFile->SColorMap;
     for (int i = 0; i < gifColorMap->ColorCount; i++) {
