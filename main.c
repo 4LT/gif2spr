@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <errno.h>
 
 #ifdef COMPILE_GIFLIB
 #	include "giflib-5.1.4/lib/gif_lib.h"
@@ -116,18 +117,40 @@ struct Vec2D parseOrigin(char *originString)
         y = 0.5;
     }
     else {
-        x = strtof(strtok(originString, ","), NULL);
+        char *end;
+        char *xToken = strtok(originString, ",");
         char *yToken = strtok(NULL, ",");
         if (yToken == NULL) {
             fputs("Missing origin Y.\n", stderr);
             exit(EXIT_FAILURE);
         }
-        y = atof(yToken);
-        if (isfinite(x) == 0) {
+
+        errno = 0;
+        x = strtod(xToken, &end);
+        if (errno == ERANGE) {
+            fputs("Origin X is out of range.\n", stderr);
+            exit(EXIT_FAILURE);
+        } else if (end == xToken)
+        {
+            fputs("Origin X is not a number.\n", stderr);
+            exit(EXIT_FAILURE);
+        } else if (isfinite(x) == 0)
+        {
             fputs("Origin X is not finite.\n", stderr);
             exit(EXIT_FAILURE);
         }
-        if (isfinite(y) == 0) {
+
+        errno = 0;
+        y = strtod(yToken, &end);
+        if (errno == ERANGE) {
+            fputs("Origin Y is out of range.\n", stderr);
+            exit(EXIT_FAILURE);
+        } else if (end == yToken)
+        {
+            fputs("Origin Y is not a number.\n", stderr);
+            exit(EXIT_FAILURE);
+        } else if (isfinite(y) == 0)
+        {
             fputs("Origin Y is not finite.\n", stderr);
             exit(EXIT_FAILURE);
         }
