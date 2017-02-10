@@ -33,7 +33,7 @@ endif
 all: $(OUTPUT)
 
 $(GIFLIB_OBJECTS): $(GIFLIB)/Makefile
-	make -C $(GIFLIB) -f Makefile SUBDIRS=lib
+	$(MAKE) -C $(GIFLIB) SUBDIRS=lib
 
 $(GIFLIB)/Makefile:
 	cd $(GIFLIB) && \
@@ -45,7 +45,7 @@ defpal.h: defpal.h_head defpal.h_foot quakepal
 main.o: main.c defpal.h
 	$(CC) $(CFLAGS) -c main.c
 
-sprite.o: sprite.c
+sprite.o: sprite.c sprite.h
 	$(CC) $(CFLAGS) -c sprite.c
 
 $(OUTPUT): $(OBJECTS)
