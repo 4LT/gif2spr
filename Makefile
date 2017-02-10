@@ -42,7 +42,7 @@ $(GIFLIB)/Makefile:
 defpal.h: defpal.h_head defpal.h_foot quakepal
 	./generate_palette.sh
 
-main.o: main.c defpal.h
+main.o: main.c defpal.h sprite.h
 	$(CC) $(CFLAGS) -c main.c
 
 sprite.o: sprite.c sprite.h
