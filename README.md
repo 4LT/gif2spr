@@ -34,12 +34,11 @@ Run `make` to create a standalone executable.
 
 Run `make package` to create a .zip archive containing executable, readme, and license agreements.
 
-Unsupported Features
+TODO
 --------------------
 
-* Multiple sequences, all images are placed in the same frame group.
-* GIF's local palettes.
-* GIF's disposal modes (entire image is re-drawn).
+* Support for local palettes
+* Disposal modes other than replace
 
 Source Code
 -----------
