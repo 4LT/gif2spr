@@ -164,8 +164,8 @@ int main(int argc, char *argv[])
     GifFileType *gifFile; /* GIF data read/decoded from file */
     ColorMapObject *gifColorMap;
     struct Spr_Sprite *sprite;
-    struct Spr_Color *sprPalette;
-    struct Spr_Image *images;
+    struct Spr_color *sprPalette;
+    struct Spr_image *images;
     float *delays;
     struct Vec2D origin;
     int alignment = -1;
@@ -211,9 +211,9 @@ int main(int argc, char *argv[])
 
     sprPalette = malloc(sizeof(*sprPalette) * SPR_PAL_SIZE);
     if (palFileName != NULL)
-        Spr_ReadPalette(palFileName, sprPalette, sprFatalError);
+        Spr_readPalette(palFileName, sprPalette, sprFatalError);
     else
-        Spr_DefaultPalette(sprPalette);
+        Spr_defaultPalette(sprPalette);
 
     origin = parseOrigin(originString);
 
@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    sprite = Spr_New(
+    sprite = Spr_new(
             alignment,
             gifFile->SWidth,
             gifFile->SHeight,
@@ -243,11 +243,11 @@ int main(int argc, char *argv[])
 
     gifColorMap = gifFile->SColorMap;
     for (int i = 0; i < gifColorMap->ColorCount; i++) {
-        struct Spr_Color color;
+        struct Spr_color color;
         color.rgb[0] = gifColorMap->Colors[i].Red;
         color.rgb[1] = gifColorMap->Colors[i].Green;
         color.rgb[2] = gifColorMap->Colors[i].Blue;
-        paletteLookup[i] = Spr_NearestIndex(sprPalette, color);
+        paletteLookup[i] = Spr_nearestIndex(sprPalette, color);
     }
 
     images = malloc(sizeof(*images) * gifFile->ImageCount);
@@ -281,10 +281,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    Spr_AppendGroupFrame(sprite, delays, images,
+    Spr_appendGroupFrame(sprite, delays, images,
             gifFile->ImageCount);
-    Spr_Write(sprite, sprFileName, sprFatalError);
-    Spr_Free(sprite);
+    Spr_write(sprite, sprFileName, sprFatalError);
+    Spr_free(sprite);
 
     return EXIT_SUCCESS;
 }

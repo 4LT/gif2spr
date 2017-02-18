@@ -37,7 +37,7 @@
 /* Index of the transparent color. */
 #define SPR_TRANS_INDEX 255
 
-enum Spr_Alignment
+enum Spr_alignment
 {
     SPR_ALIGN_VP_PARALLEL_UPRIGHT = 0,
     SPR_ALIGN_UPRIGHT,
@@ -46,7 +46,7 @@ enum Spr_Alignment
     SPR_ALIGN_VP_PARALLEL_ORIENTED
 };
 
-enum Spr_SyncType
+enum Spr_syncType
 {
     SPR_SYNC_YES = 0,
     SPR_SYNC_RANDOM
@@ -57,18 +57,18 @@ enum Spr_SyncType
 /* File access error callback. DO NOT shallow copy errString for use after
  * callback, allocation may be temporary.
  */
-typedef void (*Spr_OnError_fp)(char const *errString);
+typedef void (*Spr_onError_fp)(char const *errString);
 
 /* Structs */
 
 struct Spr_Sprite;
 
-struct Spr_Color
+struct Spr_color
 {
     unsigned char rgb[3];
 };
 
-struct Spr_Image
+struct Spr_image
 {
     int32_t offsetX; /* image's local offsets, added to sprite's offsets */
     int32_t offsetY;
@@ -87,52 +87,52 @@ struct Spr_Image
  * offsetX/offsetY - Offset applied to each image, where the image's upper left
  *     corner is centered on the origin when offsets = {0, 0}.
  */
-struct Spr_Sprite *Spr_New(
-        enum Spr_Alignment alignment,
+struct Spr_Sprite *Spr_new(
+        enum Spr_alignment alignment,
         int32_t maxWidth,
         int32_t maxHeight,
-        enum Spr_SyncType syncType,
-        struct Spr_Color *palette,
+        enum Spr_syncType syncType,
+        struct Spr_color *palette,
         int32_t offsetX,
         int32_t offsetY);
 
 /* Deallocate memory used by the sprite, and all members recursively, except for
  * palette.
  */
-void Spr_Free(struct Spr_Sprite *sprite);
+void Spr_free(struct Spr_Sprite *sprite);
 
 /* Append a new frame to the sprite, copying image data provided. */
-void Spr_AppendSingleFrame(struct Spr_Sprite *sprite,
-    struct Spr_Image const *img);
+void Spr_appendSingleFrame(struct Spr_Sprite *sprite,
+    struct Spr_image const *img);
 
 /* Append a group of nImages frames, copying image data provided.
  * delays - delay for each image in seconds
  */
-void Spr_AppendGroupFrame(struct Spr_Sprite *sprite, float const *delays,
-        struct Spr_Image const *imgs, size_t nImages);
+void Spr_appendGroupFrame(struct Spr_Sprite *sprite, float const *delays,
+        struct Spr_image const *imgs, size_t nImages);
 
 /* Write a sprite out to file.
  * errCB - Callback called on error.
  * errStream - Stream to print error messages to.
  * Returns 0 on success, 1 on failure.
  */
-int Spr_Write(struct Spr_Sprite *sprite, char const *filename,
-        Spr_OnError_fp errCB);
+int Spr_write(struct Spr_Sprite *sprite, char const *filename,
+        Spr_onError_fp errCB);
 
 /* Read a raw 256-color 24bpp palette from file.
  * palette - Must have 256 colors (768 bytes) allocated.
  * Returns 0 on success, 1 on failure to read.
  */
-int Spr_ReadPalette(char const *filename, struct Spr_Color *palette,
-        Spr_OnError_fp errCB);
+int Spr_readPalette(char const *filename, struct Spr_color *palette,
+        Spr_onError_fp errCB);
 
 /* Get default Quake color palette.
  * palette - Must have 256 colors (768 bytes) allocated.
  */
-void Spr_DefaultPalette(struct Spr_Color *palette);
+void Spr_defaultPalette(struct Spr_color *palette);
 
 /* Find the index in the palette with nearest color to the color provided.
  */
-char Spr_NearestIndex(struct Spr_Color *palette, struct Spr_Color color);
+char Spr_nearestIndex(struct Spr_color *palette, struct Spr_color color);
 
 #endif

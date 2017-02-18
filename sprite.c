@@ -35,7 +35,7 @@ int32_t const FRAME_SINGLE = 0;
 int32_t const FRAME_GROUP = 1;
 
 /* .spr file header. */
-struct Header
+struct header
 {
     char    ident[4];   /* "IDSP" */
     int32_t version;    /* = 1 */
@@ -52,32 +52,32 @@ struct Header
     int32_t syncType;   /* 0 = synchronized, 1 = random */
 };
 
-struct SingleFrame
+struct singleFrame
 {
     int32_t frameType; /* 0 for single frame */
-    struct Spr_Image image;
+    struct Spr_image image;
 };
 
-struct GroupFrame
+struct groupFrame
 {
     int32_t frameType;  /* 1 for group frame */
     int32_t nImages;
     float *imgKeys;
-    struct Spr_Image *images;
+    struct Spr_image *images;
 };
 
-union Frame
+union frame
 {
     int32_t frameType;
-    struct SingleFrame single;
-    struct GroupFrame group;
+    struct singleFrame single;
+    struct groupFrame group;
 };
 
 struct Spr_Sprite
 {
-    struct Header *header;
-    struct Spr_Color *palette;
-    union Frame *frames;
+    struct header *header;
+    struct Spr_color *palette;
+    union frame *frames;
     int32_t offsetX;
     int32_t offsetY;
 };
@@ -89,16 +89,16 @@ float dist(int32_t dx, int32_t dy)
     return sqrtf(dx*dx + dy*dy);
 }
 
-struct Spr_Sprite *Spr_New(
-        enum Spr_Alignment alignment,
+struct Spr_Sprite *Spr_new(
+        enum Spr_alignment alignment,
         int32_t maxWidth,
         int32_t maxHeight,
-        enum Spr_SyncType syncType,
-        struct Spr_Color *palette,
+        enum Spr_syncType syncType,
+        struct Spr_color *palette,
         int32_t offsetX,
         int32_t offsetY)
 {
-    struct Header *header;
+    struct header *header;
     struct Spr_Sprite *sprite;
     int32_t dx = offsetX, dy = offsetY;
 
@@ -109,7 +109,7 @@ struct Spr_Sprite *Spr_New(
         dy+= maxHeight;
 
     header = malloc(sizeof(*header));
-    *header = (struct Header) {
+    *header = (struct header) {
         .ident = "IDSP",
         .version = 1,
         .alignment = alignment,
@@ -134,7 +134,7 @@ struct Spr_Sprite *Spr_New(
 }
 
 /* free frame's images, including raster */
-void freeFrame(union Frame frame)
+void freeFrame(union frame frame)
 {
     if (frame.frameType == FRAME_SINGLE) {
         free(frame.single.image.raster);
@@ -147,16 +147,16 @@ void freeFrame(union Frame frame)
     }
 }
 
-void Spr_Free(struct Spr_Sprite *sprite)
+void Spr_free(struct Spr_Sprite *sprite)
 {
-    struct Header *header = sprite->header;
+    struct header *header = sprite->header;
     for (int i = 0; i < header->nFrames; i++)
         freeFrame(sprite->frames[i]);
     free(sprite->frames);
     free(sprite->header);
 }
 
-static void appendFrame(struct Spr_Sprite *sprite, union Frame frame)
+static void appendFrame(struct Spr_Sprite *sprite, union frame frame)
 {
     int32_t nFrames = sprite->header->nFrames;
     sprite->frames = realloc(sprite->frames,
@@ -165,27 +165,27 @@ static void appendFrame(struct Spr_Sprite *sprite, union Frame frame)
     sprite->header->nFrames++;
 }
 
-void Spr_AppendSingleFrame(struct Spr_Sprite *sprite,
-        struct Spr_Image const *img)
+void Spr_appendSingleFrame(struct Spr_Sprite *sprite,
+        struct Spr_image const *img)
 {
-    union Frame frame;
+    union frame frame;
     size_t rasterSz = img->width * img->height;
-    frame.single = (struct SingleFrame) { FRAME_SINGLE, *img };
+    frame.single = (struct singleFrame) { FRAME_SINGLE, *img };
     frame.single.image.raster = malloc(rasterSz);
     memcpy(&frame.single.image.raster, &img->raster, rasterSz);
     appendFrame(sprite, frame);
 }
 
-void Spr_AppendGroupFrame(struct Spr_Sprite *sprite, float const *delays,
-        struct Spr_Image const *imgs, size_t nImages)
+void Spr_appendGroupFrame(struct Spr_Sprite *sprite, float const *delays,
+        struct Spr_image const *imgs, size_t nImages)
 {
-    union Frame frame;
-    size_t imagesSz = sizeof(struct Spr_Image) * nImages;
+    union frame frame;
+    size_t imagesSz = sizeof(struct Spr_image) * nImages;
     float *imgKeys = malloc(sizeof(float) * nImages);
     float keyTime = 0;
-    frame.group = (struct GroupFrame) { FRAME_GROUP, nImages, imgKeys, NULL };
+    frame.group = (struct groupFrame) { FRAME_GROUP, nImages, imgKeys, NULL };
     frame.group.images =
-            (struct Spr_Image *)malloc(imagesSz);
+            (struct Spr_image *)malloc(imagesSz);
     memcpy(frame.group.images, imgs, imagesSz);
     for (int i = 0; i < nImages; i++) {
         size_t rasterSz = imgs[i].width * imgs[i].height;
@@ -198,7 +198,7 @@ void Spr_AppendGroupFrame(struct Spr_Sprite *sprite, float const *delays,
 }
 
 static void errMsg(char const *filename, char const *message,
-        Spr_OnError_fp errCB)
+        Spr_onError_fp errCB)
 {
     char const *separator = ": ";
     size_t sepLen = strlen(separator);
@@ -230,8 +230,8 @@ static void errMsg(char const *filename, char const *message,
     return 1;\
 }
 
-static int writeImage(struct Spr_Sprite const *sprite, struct Spr_Image img,
-        FILE *file, char const *filename, Spr_OnError_fp errCB)
+static int writeImage(struct Spr_Sprite const *sprite, struct Spr_image img,
+        FILE *file, char const *filename, Spr_onError_fp errCB)
 {
     size_t rasterSz = img.width * img.height;
     int32_t totalOffsetX = img.offsetX + sprite->offsetX;
@@ -250,8 +250,8 @@ static int writeImage(struct Spr_Sprite const *sprite, struct Spr_Image img,
     return 0;
 }
 
-int Spr_Write(struct Spr_Sprite *sprite, char const *filename,
-        Spr_OnError_fp errCB)
+int Spr_write(struct Spr_Sprite *sprite, char const *filename,
+        Spr_onError_fp errCB)
 {
     FILE *file = fopen(filename, "wb");
     if (file == NULL)
@@ -259,7 +259,7 @@ int Spr_Write(struct Spr_Sprite *sprite, char const *filename,
     if (fwrite((void *)sprite->header, sizeof(*sprite->header), 1, file) < 1)
         MS_ERR_MSG_WRITE();
     for (size_t i = 0; i < sprite->header->nFrames; i++) {
-        union Frame *frame = sprite->frames + i;
+        union frame *frame = sprite->frames + i;
         if (fwrite((void *)&frame->frameType,
                 sizeof(frame->frameType), 1, file) < 1) {
             MS_ERR_MSG_WRITE();
@@ -290,8 +290,8 @@ int Spr_Write(struct Spr_Sprite *sprite, char const *filename,
     return 0;
 }
 
-int Spr_ReadPalette(char const *filename, struct Spr_Color *palette,
-        Spr_OnError_fp errCB)
+int Spr_readPalette(char const *filename, struct Spr_color *palette,
+        Spr_onError_fp errCB)
 {
     FILE *file = fopen(filename, "rb");
     if (file == NULL)
@@ -302,12 +302,12 @@ int Spr_ReadPalette(char const *filename, struct Spr_Color *palette,
     return 0;
 }
 
-void Spr_DefaultPalette(struct Spr_Color *palette)
+void Spr_defaultPalette(struct Spr_color *palette)
 {
     memcpy(palette, DEFPAL, sizeof(*palette) * SPR_PAL_SIZE);
 }
 
-double colorDistance(struct Spr_Color color1, struct Spr_Color color2)
+double colorDistance(struct Spr_color color1, struct Spr_color color2)
 {
     int deltas[3];
     for (int i = 0; i < 3; i++) {
@@ -317,7 +317,7 @@ double colorDistance(struct Spr_Color color1, struct Spr_Color color2)
     return sqrt(deltas[0] + deltas[1] + deltas[2]);
 }
 
-char Spr_NearestIndex(struct Spr_Color *palette, struct Spr_Color color)
+char Spr_nearestIndex(struct Spr_color *palette, struct Spr_color color)
 {
     double minDist = 255 * 3;
     char nearestIndex = 0;
