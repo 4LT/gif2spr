@@ -28,7 +28,7 @@ else
 	LDFLAGS := $(LDFLAGS) -lgif
 endif
 
-.PHONY=all clean clean-giflib package
+.PHONY: all clean clean-giflib package
 
 all: $(OUTPUT)
 
