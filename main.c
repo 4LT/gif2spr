@@ -233,10 +233,13 @@ int main(int argc, char *argv[])
     }
 
     sprite = Spr_new(
+            SPR_VER_QUAKE,
             alignment,
+            SPR_TEX_INDEX_ALPHA,
             gifFile->SWidth,
             gifFile->SHeight,
             SPR_SYNC_YES,
+            SPR_PAL_SIZE,
             sprPalette,
             (int32_t)floor(  -origin.x  * gifFile->SWidth),
             (int32_t)floor((1-origin.y) * gifFile->SHeight) );

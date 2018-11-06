@@ -102,10 +102,13 @@ struct Spr_image
  *     corner is centered on the origin when offsets = {0, 0}.
  */
 struct Spr_Sprite *Spr_new(
+        enum Spr_version ver,
         enum Spr_alignment alignment,
+        enum Spr_hlTextureType texType,
         int32_t maxWidth,
         int32_t maxHeight,
         enum Spr_syncType syncType,
+        uint16_t palColorCt,
         struct Spr_color *palette,
         int32_t offsetX,
         int32_t offsetY);

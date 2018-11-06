@@ -80,6 +80,7 @@ union frame
 struct Spr_Sprite
 {
     struct header *header;
+    uint16_t colorCt;
     struct Spr_color *palette;
     union frame *frames;
     int32_t offsetX;
@@ -94,10 +95,13 @@ float dist(int32_t dx, int32_t dy)
 }
 
 struct Spr_Sprite *Spr_new(
+        enum Spr_version ver,
         enum Spr_alignment alignment,
+        enum Spr_hlTextureType texType,
         int32_t maxWidth,
         int32_t maxHeight,
         enum Spr_syncType syncType,
+        uint16_t palColorCt,
         struct Spr_color *palette,
         int32_t offsetX,
         int32_t offsetY)
@@ -115,9 +119,9 @@ struct Spr_Sprite *Spr_new(
     header = malloc(sizeof(*header));
     *header = (struct header) {
         .ident = "IDSP",
-        .version = SPR_VER_QUAKE,
+        .version = ver,
         .alignment = alignment,
-        .hlTexType = SPR_TEX_ALPHA_TEST,
+        .hlTexType = texType,
         .radius = dist(dx, dy), 
         .maxWidth = maxWidth,
         .maxHeight = maxHeight,
@@ -129,6 +133,7 @@ struct Spr_Sprite *Spr_new(
     sprite = malloc(sizeof(*sprite));
     *sprite = (struct Spr_Sprite) {
         header,
+        palColorCt,
         palette,
         NULL,
         offsetX,
