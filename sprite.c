@@ -38,12 +38,16 @@ int32_t const FRAME_GROUP = 1;
 struct header
 {
     char    ident[4];   /* "IDSP" */
-    int32_t version;    /* = 1 */
+    int32_t version;    /* = 1 for Quake, 2 for HL */
     int32_t alignment;  /* 0: vp parallel upright
                            1: facing upright
                            2: vp parallel
                            3: oriented
                            4: vp parallel oriented */ 
+    int32_t hlTexType;  /* 0: normal
+                           1: additive
+                           2: index alpha
+                           3: alpha test */
     float   radius;     /* bounding radius */
     int32_t maxWidth;   /* width/height that can hold all frames */
     int32_t maxHeight;  
@@ -111,8 +115,9 @@ struct Spr_Sprite *Spr_new(
     header = malloc(sizeof(*header));
     *header = (struct header) {
         .ident = "IDSP",
-        .version = 1,
+        .version = SPR_VER_QUAKE,
         .alignment = alignment,
+        .hlTexType = SPR_TEX_ALPHA_TEST,
         .radius = dist(dx, dy), 
         .maxWidth = maxWidth,
         .maxHeight = maxHeight,

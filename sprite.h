@@ -46,6 +46,20 @@ enum Spr_alignment
     SPR_ALIGN_VP_PARALLEL_ORIENTED
 };
 
+enum Spr_version
+{
+    SPR_VER_QUAKE = 1,
+    SPR_VER_HL = 2
+};
+
+enum Spr_hlTextureType
+{
+    SPR_TEX_NORMAL = 0,
+    SPR_TEX_ADDITIVE,
+    SPR_TEX_INDEX_ALPHA,
+    SPR_TEX_ALPHA_TEST
+};
+
 enum Spr_syncType
 {
     SPR_SYNC_YES = 0,
