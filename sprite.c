@@ -250,14 +250,40 @@ static int writeImage(struct Spr_Sprite const *sprite, struct Spr_image img,
     return 0;
 }
 
+static int writeHeader(struct header const *hdr, FILE *file,
+        char const *filename, Spr_onError_fp errCB)
+{
+    if (fwrite((void *)&hdr->ident, sizeof(hdr->ident), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->version, sizeof(hdr->version), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->alignment, sizeof(hdr->alignment), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->radius, sizeof(hdr->radius), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->maxWidth, sizeof(hdr->maxWidth), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->maxHeight, sizeof(hdr->maxHeight), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->nFrames, sizeof(hdr->nFrames), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->beamLength, sizeof(hdr->beamLength), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->syncType, sizeof(hdr->syncType), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    return 0;
+}
+
 int Spr_write(struct Spr_Sprite *sprite, char const *filename,
         Spr_onError_fp errCB)
 {
     FILE *file = fopen(filename, "wb");
     if (file == NULL)
         MS_ERR_MSG_OPEN();
-    if (fwrite((void *)sprite->header, sizeof(*sprite->header), 1, file) < 1)
-        MS_ERR_MSG_WRITE();
+//    if (fwrite((void *)sprite->header, sizeof(*sprite->header), 1, file) < 1)
+//        MS_ERR_MSG_WRITE();
+    if (writeHeader(sprite->header, file, filename, errCB))
+        return 1;
     for (size_t i = 0; i < sprite->header->nFrames; i++) {
         union frame *frame = sprite->frames + i;
         if (fwrite((void *)&frame->frameType,
