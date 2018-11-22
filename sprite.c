@@ -80,8 +80,7 @@ union frame
 struct Spr_Sprite
 {
     struct header *header;
-    uint16_t colorCt;
-    struct Spr_color *palette;
+    struct Spr_palette palette;
     union frame *frames;
     int32_t offsetX;
     int32_t offsetY;
@@ -102,13 +101,14 @@ struct Spr_Sprite *Spr_new(
         int32_t maxHeight,
         enum Spr_syncType syncType,
         uint16_t palColorCt,
-        struct Spr_color *palette,
+        struct Spr_color const *colors,
         int32_t offsetX,
         int32_t offsetY)
 {
     struct header *header;
     struct Spr_Sprite *sprite;
     int32_t dx = offsetX, dy = offsetY;
+    struct Spr_color *newColors;
 
     /* select furthest corner from upper left */
     if (-2*offsetX < maxWidth)
@@ -130,11 +130,13 @@ struct Spr_Sprite *Spr_new(
         .syncType = syncType
     };
 
+    newColors = malloc(sizeof(*newColors) * palColorCt);
+    memcpy(newColors, colors, sizeof(*colors) * palColorCt);
+
     sprite = malloc(sizeof(*sprite));
     *sprite = (struct Spr_Sprite) {
         header,
-        palColorCt,
-        palette,
+        (struct Spr_palette) {palColorCt, newColors},
         NULL,
         offsetX,
         offsetY
@@ -163,6 +165,7 @@ void Spr_free(struct Spr_Sprite *sprite)
     for (int i = 0; i < header->nFrames; i++)
         freeFrame(sprite->frames[i]);
     free(sprite->frames);
+    free(sprite->palette.colors);
     free(sprite->header);
 }
 
@@ -182,7 +185,7 @@ void Spr_appendSingleFrame(struct Spr_Sprite *sprite,
     size_t rasterSz = img->width * img->height;
     frame.single = (struct singleFrame) { FRAME_SINGLE, *img };
     frame.single.image.raster = malloc(rasterSz);
-    memcpy(&frame.single.image.raster, &img->raster, rasterSz);
+    memcpy(frame.single.image.raster, img->raster, rasterSz);
     appendFrame(sprite, frame);
 }
 
@@ -269,6 +272,12 @@ static int writeHeader(struct header const *hdr, FILE *file,
         MS_ERR_MSG_WRITE();
     if (fwrite((void *)&hdr->alignment, sizeof(hdr->alignment), 1, file) < 1)
         MS_ERR_MSG_WRITE();
+
+    if (hdr->version == SPR_VER_HL) {
+        if (fwrite((void *)&hdr->hlTexType, sizeof(hdr->hlTexType), 1, file)<1)
+            MS_ERR_MSG_WRITE();
+    }
+
     if (fwrite((void *)&hdr->radius, sizeof(hdr->radius), 1, file) < 1)
         MS_ERR_MSG_WRITE();
     if (fwrite((void *)&hdr->maxWidth, sizeof(hdr->maxWidth), 1, file) < 1)
@@ -294,6 +303,15 @@ int Spr_write(struct Spr_Sprite *sprite, char const *filename,
 //        MS_ERR_MSG_WRITE();
     if (writeHeader(sprite->header, file, filename, errCB))
         return 1;
+    if (sprite->header->version == SPR_VER_HL) {
+        if (fwrite((void *)&sprite->palette.colorCt,
+                    sizeof(sprite->palette.colorCt), 1, file) < 1)
+            MS_ERR_MSG_WRITE();
+        if (fwrite((void *)sprite->palette.colors,
+                    sizeof(*sprite->palette.colors), sprite->palette.colorCt,
+                    file) < 1)
+            MS_ERR_MSG_WRITE();
+    }
     for (size_t i = 0; i < sprite->header->nFrames; i++) {
         union frame *frame = sprite->frames + i;
         if (fwrite((void *)&frame->frameType,
@@ -326,23 +344,27 @@ int Spr_write(struct Spr_Sprite *sprite, char const *filename,
     return 0;
 }
 
-int Spr_readPalette(char const *filename, struct Spr_color *palette,
+int Spr_readPalette(char const *filename, struct Spr_color *colors,
         Spr_onError_fp errCB)
 {
     FILE *file = fopen(filename, "rb");
     if (file == NULL)
         MS_ERR_MSG_OPEN();
-    if (fread(palette, sizeof(*palette), SPR_PAL_SIZE, file) < SPR_PAL_SIZE)
+    if (fread(colors, sizeof(*colors), SPR_Q_PAL_SIZE, file) < SPR_Q_PAL_SIZE)
         MS_ERR_MSG_READ();
     fclose(file);
     return 0;
 }
 
-void Spr_defaultPalette(struct Spr_color *palette)
+void Spr_defaultQPalette(struct Spr_color *colors)
 {
-    memcpy(palette, DEFPAL, sizeof(*palette) * SPR_PAL_SIZE);
+    memcpy(colors, DEFPAL, sizeof(*colors) * SPR_Q_PAL_SIZE);
 }
 
+// R_WEIGHT**2 + G_WEIGHT**2 + B_WEIGHT**2 <= 2**31 / 255**2  
+#define R_WEIGHT 29
+#define G_WEIGHT 59
+#define B_WEIGHT 11
 double colorDistance(struct Spr_color color1, struct Spr_color color2)
 {
     int deltas[3];
@@ -350,16 +372,20 @@ double colorDistance(struct Spr_color color1, struct Spr_color color2)
         deltas[i] = (int)(color1.rgb[i]) - color2.rgb[i];
         deltas[i]*= deltas[i];
     }
-    return sqrt(deltas[0] + deltas[1] + deltas[2]);
+    return sqrt(
+            R_WEIGHT * R_WEIGHT * deltas[0] + 
+            G_WEIGHT * G_WEIGHT * deltas[1] + 
+            B_WEIGHT * B_WEIGHT * deltas[2]);
 }
 
-char Spr_nearestIndex(struct Spr_color *palette, struct Spr_color color)
+char Spr_nearestIndex(struct Spr_Sprite *sprite, struct Spr_color color)
 {
+    struct Spr_palette pal = sprite->palette;
     double minDist = 255 * 3;
     char nearestIndex = 0;
-    for (int i = 0; i < SPR_PAL_SIZE; i++) {
-        if (i != SPR_TRANS_INDEX) {
-            double distance = colorDistance(palette[i], color);
+    for (int i = 0; i < pal.colorCt; i++) {
+        if (i != pal.colorCt - 1) {
+            double distance = colorDistance(pal.colors[i], color);
             if (distance < minDist) {
                 minDist = distance;
                 nearestIndex = i;

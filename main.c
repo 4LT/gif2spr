@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <math.h>
 #include <errno.h>
 
@@ -61,10 +62,10 @@ static char *sprFileName = NULL;
 static char *palFileName = NULL;
 static char *originString = NULL;
 static char *alignmentOption = NULL;
+static enum Spr_version version = SPR_VER_QUAKE; 
 
 int loadArgs(int argc, char *argv[])
 {
-    /* TODO: learn posix libs */
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
             if (strcmp(argv[i], "-origin") == 0) {
@@ -86,6 +87,12 @@ int loadArgs(int argc, char *argv[])
                 if (i >= argc)
                     return 3;
                 alignmentOption = argv[i];
+            }
+            else if (strcmp(argv[i], "-hl") == 0) {
+                version = SPR_VER_HL;
+            }
+            else if (strcmp(argv[i], "-quake") == 0) {
+                version = SPR_VER_QUAKE;
             }
             else {
                 fprintf(stderr, "Unknown option \"%s\"\n", argv[i]);
@@ -164,12 +171,14 @@ int main(int argc, char *argv[])
     GifFileType *gifFile; /* GIF data read/decoded from file */
     ColorMapObject *gifColorMap;
     struct Spr_Sprite *sprite;
-    struct Spr_color *sprPalette;
+    uint16_t colorCt; /* number of colors */
+    static struct Spr_color colors[SPR_MAX_PAL_SIZE];
     struct Spr_image *images;
     float *delays;
     struct Vec2D origin;
     int alignment = -1;
-    char paletteLookup[SPR_PAL_SIZE];
+    static uint8_t paletteLookup[SPR_MAX_PAL_SIZE];
+
     int loadErr = loadArgs(argc, argv);
 
     if (loadErr != 0) {
@@ -179,7 +188,7 @@ int main(int argc, char *argv[])
         /*             7       
          *       4567890123456*/
                 "[-origin X,Y]\n", stderr);
-        fputs("       GIFFILE SPRFILE\n\n", stderr);
+        fputs("       [-quake] [-hl] GIFFILE SPRFILE\n\n", stderr);
         fputs("    ALIGNMENT Sprite orientation. Options "
                 "(defaults to vp-parallel):\n", stderr);
         for (int i = 0; i < N_ALIGNMENTS; i++)
@@ -190,6 +199,9 @@ int main(int argc, char *argv[])
                 "Defaults to 0.5 (center).\n", stderr);
         fputs("    Y         Decimal origin Y component. "
                 "Defaults to 0.5 (center).\n", stderr);
+        fputs("    -quake    Write sprite in Quake format (default).\n",
+                stderr);
+        fputs("    -hl       Write sprite in Half-Life format.\n", stderr);
         fputs("    GIFFILE   Input GIF file.\n", stderr);
         fputs("    SPRFILE   Output SPRITE file.\n", stderr);
         exit(EXIT_FAILURE);
@@ -209,11 +221,26 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    sprPalette = malloc(sizeof(*sprPalette) * SPR_PAL_SIZE);
-    if (palFileName != NULL)
-        Spr_readPalette(palFileName, sprPalette, sprFatalError);
-    else
-        Spr_defaultPalette(sprPalette);
+    gifColorMap = gifFile->SColorMap;
+
+    if (version == SPR_VER_HL) {
+        colorCt = (uint16_t)(gifColorMap->ColorCount);
+        for (int i = 0; i < colorCt; i++) {
+            /* identity lookup */
+            paletteLookup[i] = (uint8_t)i;
+            /* copy colors */
+            colors[i].rgb[0] = gifColorMap->Colors[i].Red;
+            colors[i].rgb[1] = gifColorMap->Colors[i].Green;
+            colors[i].rgb[2] = gifColorMap->Colors[i].Blue;
+        }
+    }
+    else {
+        colorCt = SPR_Q_PAL_SIZE;
+        if (palFileName != NULL)
+            Spr_readPalette(palFileName, colors, sprFatalError);
+        else
+            Spr_defaultQPalette(colors);
+    }
 
     origin = parseOrigin(originString);
 
@@ -233,14 +260,14 @@ int main(int argc, char *argv[])
     }
 
     sprite = Spr_new(
-            SPR_VER_QUAKE,
+            version,
             alignment,
-            SPR_TEX_INDEX_ALPHA,
+            SPR_TEX_ALPHA_TEST,
             gifFile->SWidth,
             gifFile->SHeight,
             SPR_SYNC_YES,
-            SPR_PAL_SIZE,
-            sprPalette,
+            colorCt,
+            colors,
             (int32_t)floor(  -origin.x  * gifFile->SWidth),
             (int32_t)floor((1-origin.y) * gifFile->SHeight) );
 
@@ -250,7 +277,7 @@ int main(int argc, char *argv[])
         color.rgb[0] = gifColorMap->Colors[i].Red;
         color.rgb[1] = gifColorMap->Colors[i].Green;
         color.rgb[2] = gifColorMap->Colors[i].Blue;
-        paletteLookup[i] = Spr_nearestIndex(sprPalette, color);
+        paletteLookup[i] = Spr_nearestIndex(sprite, color);
     }
 
     images = malloc(sizeof(*images) * gifFile->ImageCount);
@@ -278,14 +305,24 @@ int main(int argc, char *argv[])
         for (size_t j = 0; j < pixCount; j++) {
             char color = gifImage.RasterBits[j];
             if (color == gifTransIndex)
-                images[i].raster[j] = (char)SPR_TRANS_INDEX;
+                images[i].raster[j] = (char)SPR_TRANS_IDX;
             else
                 images[i].raster[j] = paletteLookup[(int)color];
         }
     }
 
-    Spr_appendGroupFrame(sprite, delays, images,
-            gifFile->ImageCount);
+    if (version == SPR_VER_QUAKE) {
+        Spr_appendGroupFrame(sprite, delays, images, gifFile->ImageCount);
+    }
+    else {
+        for (int i = 0; i < gifFile->ImageCount; i++) {
+            Spr_appendSingleFrame(sprite, images + i);
+        }
+#if 1
+        Spr_appendSingleFrame(sprite, images); /* dummy frame */
+#endif
+    }
+
     Spr_write(sprite, sprFileName, sprFatalError);
     Spr_free(sprite);
 
