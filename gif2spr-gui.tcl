@@ -1,16 +1,126 @@
 #!/usr/bin/env wish
 
-package require Tk
+package require Tk 8.6
+package require platform
 
+# Boilerplate Section
+
+proc followLinks {path} {
+    while 1 {
+        try {
+            set dir [file dirname $path]
+            set path [file join $dir [file readlink $path]]
+        } on error {} {
+            break
+        }
+    } 
+    return $path
+}
+
+set OS [regsub -- {-.*$} [platform::identify] ""]
 set DISABLED_COLOR [ttk::style lookup TLabel -foreground disabled]
+set SCRIPT_PATH [file normalize [followLinks [info script]]]
 
-set game quake
+if {$OS == {win32}} {
+    set WIN 1
+    set MAC 0
+    set NIX 0
+} elseif {$OS == {cygwin}} {
+    set WIN 1
+    set MAC 0
+    set NIX 1
+} elseif {$OS == {linux}} {
+    set WIN 0
+    set MAC 0
+    set NIX 1
+} elseif {[string first macosx $OS] == 0} {
+    set WIN 0
+    set MAC 1
+    set NIX 1
+} else {
+    set WIN 0
+    set MAC 0
+    set NIX 1
+}
+
+if {$MAC} {
+    set APP 1
+} else {
+    set APP 0
+}
+
+if {$NIX && !$APP} { ;# Linux, Cygwin, cmd-line Mac
+    if {[string first /usr/local [file normalize [info script]]] == 0} {
+        set DATA_PATH /usr/local/share/gif2spr
+    } else {
+        set DATA_PATH /usr/share/gif2spr
+    }
+    set USER_DATA_PATH [file join $env(HOME) .local share gif2spr]
+    set GIF2SPR gif2spr
+} elseif {$MAC} { ;# Mac application
+    # ???
+    throw UNIMPLEMENTED "Ouch! Mac stuff unimplemented"
+    set USER_DATA_PATH [file join $env(HOME) Library "Application Support"\
+        gif2spr]
+} else { ;# Assume Windows
+    set DATA_PATH [file dirname $SCRIPT_PATH]
+    set USER_DATA_PATH [file join $env(USERPROFILE) AppData Local gif2spr]
+    set GIF2SPR [file join $DATA_PATH gif2spr]
+}
+
+try {
+    file mkdir $USER_DATA_PATH
+} on error {} {
+    puts stderr "Could not get/set user data path"
+}
+
+try {
+    set initDictChan [open [file join $USER_DATA_PATH init.dict]]
+    set initDict [read $initDictChan]
+} on error {} {
+    set initDict {
+        dirs {}
+        game quake
+    }
+} finally {
+    if {[info exists initDictChan]} {
+        close $initDictChan
+    }
+}
+
+# UI Section
+
+if {[dict exists $initDict game]} {
+    set game [dict get $initDict game]
+} else {
+    set game quake
+}
+if {$argc > 0} {
+    set gifPath [lindex $argv 0]
+} else {
+    set gifPath ""
+}
 set origin 0.5,0.5
 set alignment vp-parallel
-set gifPath ""
 set palPath ""
 set blendMode normal
 set color #ffffff
+
+proc onClose {} {
+    try {
+        set initDictChan [open [file join $::USER_DATA_PATH init.dict] w]
+        puts $initDictChan $::initDict
+    } on error {err} {
+        puts stderr "Could not save init directories"
+        puts $err
+    } finally {
+        if {[info exists initDirDictChan]} {
+            close $initDictChan
+        }
+
+        destroy .
+    }
+}
 
 proc colorButtonFlat {btn clr} {
     $btn configure -background $clr -highlightbackground $clr\
@@ -41,6 +151,7 @@ proc onSetGame {args} {
         .l.blendlbl state disabled
         .l.blendcombo state disabled
     }
+    dict set ::initDict game $::game
     onSetBlendModeOrGame
 }
 
@@ -57,12 +168,23 @@ proc onSetGifPath {args} {
 }
 
 proc writeSpr {} {
-    set sprFile [tk_getSaveFile]
+    set saveFileScript tk_getSaveFile
+    lappend saveFileScript -filetypes {
+        {"Sprite" .spr}
+        {"All Files" *}
+    }
+    if {[dict exists $::initDict dirs spr]} {
+        lappend saveFileScript -initialdir [dict get $::initDict dirs spr]
+    }
+    set sprFile [eval $saveFileScript]
+
     if {[string trim $sprFile] == ""} {
         return
+    } else {
+        dict set ::initDict dirs spr [file dirname $sprFile]
     }
 
-    set cmd [list exec gif2spr -$::game -origin $::origin]
+    set cmd [list exec $::GIF2SPR -$::game -origin $::origin]
     lappend cmd -alignment $::alignment
     if {$::palPath != ""} {
         lappend cmd -palette "$::palPath"
@@ -80,6 +202,37 @@ proc setColor args {
     set newColor [tk_chooseColor -initialcolor $::color]
     if {$newColor != ""} {
         set ::color $newColor
+    }
+}
+
+proc selectFile {type pathVar} {
+    upvar $pathVar myPathVar
+    set openFileScript tk_getOpenFile
+    set path ""
+
+    if {$type == {gif}} {
+        set gifTypes {
+            {"GIF Files" .gif}
+            {"All Files" *}
+        }
+        if {[file exists $::gifPath]} {
+            lappend openFileScript -initialdir [file dirname $::gifPath]
+        } elseif {[dict exists $::initDict dirs gif]} {
+            lappend openFileScript -initialdir [dict get $::initDict dirs gif]
+        }
+        lappend openFileScript -filetypes $gifTypes
+    } elseif {$type == {pal}} {
+        if {[dict exists $::initDict dirs pal]} {
+            lappend openFileScript -initialdir [dict get $::initDict dirs pal]
+        }
+    } else {
+        throw {} "Unsupported file type \"$type\""
+    }
+
+    set path [eval $openFileScript]
+    if {$path != {}} {
+        dict set ::initDict dirs $type [file dirname $path]
+        set $pathVar $path
     }
 }
 
@@ -104,7 +257,7 @@ grid [ttk::label .l.giflbl -text "Input GIF"]\
 
 grid [ttk::entry .l.gifframe.entry -textvariable gifPath -width 30]\
     [ttk::button .l.gifframe.btn -text Select -command {
-        set ::gifPath [tk_getOpenFile]
+        selectFile gif ::gifPath
     }]
 
 grid [ttk::label .l.alignlbl -text Alignment]\
@@ -123,7 +276,7 @@ grid [ttk::label .l.pallbl -text "Override Palette\n(Blank = Use Default)"\
 
 grid [ttk::entry .l.palframe.entry -textvariable palPath -width 30]\
     [ttk::button .l.palframe.selbtn -text Select -command {
-        set ::palPath [tk_getOpenFile]
+        selectFile pal ::palPath
     }]\
     [ttk::button .l.palframe.clrbtn -text Clear -command {
         set ::palPath ""
@@ -178,9 +331,13 @@ foreach radio [grid slave .r.origin] {
 grid columnconfigure .r.origin all -uniform c -weight 1 -pad 4
 
 grid [ttk::button .bot.write -text Write -command writeSpr]\
-    [ttk::button .bot.quit -text Quit -command {destroy .}]\
+    [ttk::button .bot.quit -text Quit -command onClose]\
     -padx 4 -pady 4 
 .bot.write state disabled
+
+wm protocol . WM_DELETE_WINDOW {
+    onClose
+}
 
 onSetGame
 . configure -padx 4 -pady 4
