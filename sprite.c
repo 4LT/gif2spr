@@ -29,7 +29,7 @@
 #include <math.h>
 #include <float.h>
 
-#include "defpal.h"
+#include "quakepal.h"
 
 int32_t const FRAME_SINGLE = 0;
 int32_t const FRAME_GROUP = 1;
@@ -358,7 +358,7 @@ int Spr_readPalette(char const *filename, struct Spr_color *colors,
 
 void Spr_defaultQPalette(struct Spr_color *colors)
 {
-    memcpy(colors, DEFPAL, sizeof(*colors) * SPR_Q_PAL_SIZE);
+    memcpy(colors, QUAKEPAL, sizeof(*colors) * SPR_Q_PAL_SIZE);
 }
 
 // R_WEIGHT**2 + G_WEIGHT**2 + B_WEIGHT**2 <= 2**31 / 255**2  
