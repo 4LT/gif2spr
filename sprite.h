@@ -79,7 +79,7 @@ struct Spr_Sprite;
 
 struct Spr_color
 {
-    unsigned char rgb[3];
+    uint8_t rgb[3];
 };
 
 struct Spr_palette
@@ -94,7 +94,7 @@ struct Spr_image
     int32_t offsetY;
     int32_t width;
     int32_t height;
-    char *raster; /* list of palette indices */
+    uint8_t *raster; /* list of palette indices */
 };
 
 /* Functions */
