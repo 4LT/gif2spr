@@ -36,7 +36,15 @@
 
 #include "sprite.h"
 
-struct Vec2D { double x; double y; };
+struct DVec2D { double x; double y; };
+
+struct Rect {
+    int width;
+    int height;
+    int left;
+    int top;
+    uint8_t *raster;
+};
 
 void sprNonFatalError(char const *errString)
 {
@@ -64,7 +72,116 @@ static char *originString = NULL;
 static char *alignmentOption = NULL;
 static enum Spr_version version = SPR_VER_QUAKE; 
 
-int loadArgs(int argc, char *argv[])
+static void blit
+(uint8_t *buffer, const uint8_t *frame, int bufW, int bufH,
+ int frameW, int frameH, int left, int top, int transparent, int bgIndex)
+{
+    for (int fx = 0; fx < frameW; fx++)
+    for (int fy = 0; fy < frameH; fy++) {
+        int bx = left + fx;
+        int by = top + fy;
+
+        if (bx >= 0 && bx < bufW && by >= 0 && by < bufH) {
+            uint8_t color = frame[fx + frameW * fy];
+            if (color != transparent) {
+                buffer[bx + bufW * by] = color;
+            } else if (bgIndex >= 0) {
+                buffer[bx + bufW * by] = (uint8_t)bgIndex;
+            }
+        }
+    }
+}
+
+static void sampleRect
+(const uint8_t *buffer, uint8_t *rectRaster, int bufW, int bufH,
+ struct Rect rect, int transparent, uint8_t *lookup)
+{
+    for (int rx = 0; rx < rect.width; rx++)
+    for (int ry = 0; ry < rect.height; ry++) {
+        int bx = rect.left + rx;
+        int by = rect.top + ry;
+
+        if (bx >= 0 && bx < bufW && by >= 0 && by < bufH) {
+            uint8_t color = buffer[bx + bufW * by];
+            if (color == transparent) {
+                rectRaster[rx + rect.width * ry] = SPR_TRANS_IDX;
+            }
+            else {
+                rectRaster[rx + rect.width * ry] = lookup[color];
+            }
+        }
+        else {
+            rectRaster[rx + rect.width * ry] = SPR_TRANS_IDX;
+        }
+    }
+}
+
+static struct Rect minRect
+(const uint8_t *buffer, int bufW, int bufH, int transparent)
+{
+    int left = 0;
+    int right = bufW-1;
+    int top = 0;
+    int bottom = bufW-1;
+    int x, y;
+    bool done = false;
+
+    x = left;
+    while (x < bufW && !done) {
+        for (y = 0; y < bufH && !done; y++) {
+            if (buffer[x + bufW * y] != transparent) {
+                left = x;
+                done = true;
+            }
+        }
+        x++;
+    }
+
+    done = false;
+    x = right;
+    while (x > left && !done) {
+        for (y = 0; y < bufH && !done; y++) {
+            if (buffer[x + bufW * y] != transparent) {
+                right = x;
+                done = true;
+            }
+        }
+        x--;
+    }
+
+    done = false;
+    y = top;
+    while (y < bufH && !done) {
+        for (x = left; x <= right && !done; x++) {
+            if (buffer[x + bufW * y] != transparent) {
+                top = y;
+                done = true;
+            }
+        }
+        y++;
+    }
+
+    done = false;
+    y = bottom;
+    while (y > top && !done) {
+        for (x = left; x <= right && !done; x++) {
+            if (buffer[x + bufW * y] != transparent) {
+                bottom = y;
+                done = true;
+            }
+        }
+        y--;
+    }
+
+    struct Rect rect;
+    rect.width = right >= left ? right - left + 1 : 0;
+    rect.height = bottom >= top ? bottom - top + 1 : 0;
+    rect.left = left;
+    rect.top = top;
+    return rect;
+}
+
+static int loadArgs(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
@@ -116,7 +233,7 @@ int loadArgs(int argc, char *argv[])
         return 0;
 }
 
-struct Vec2D parseOrigin(char *originString)
+static struct DVec2D parseOrigin(char *originString)
 {
     double x, y;
     if (originString == NULL) {
@@ -162,7 +279,7 @@ struct Vec2D parseOrigin(char *originString)
             exit(EXIT_FAILURE);
         }
     }
-    return (struct Vec2D){ x, y };
+    return (struct DVec2D){ x, y };
 }
 
 int main(int argc, char *argv[])
@@ -175,9 +292,13 @@ int main(int argc, char *argv[])
     static struct Spr_color colors[SPR_MAX_PAL_SIZE];
     struct Spr_image *images;
     float *delays;
-    struct Vec2D origin;
+    struct DVec2D origin;
     int alignment = -1;
     static uint8_t paletteLookup[SPR_MAX_PAL_SIZE];
+    uint8_t *imgBuffer;
+    uint8_t *prevBuffer;
+    size_t canvasPixCount;
+    uint8_t gifBgIndex = 0;
 
     int loadErr = loadArgs(argc, argv);
 
@@ -280,35 +401,82 @@ int main(int argc, char *argv[])
         paletteLookup[i] = Spr_nearestIndex(sprite, color);
     }
 
+    canvasPixCount = gifFile->SWidth * gifFile->SHeight;
+    imgBuffer = malloc(canvasPixCount);
+    prevBuffer = malloc(canvasPixCount);
+
     images = malloc(sizeof(*images) * gifFile->ImageCount);
     delays = malloc(sizeof(*delays) * gifFile->ImageCount);
+
     for (int i = 0; i < gifFile->ImageCount; i++) {
         SavedImage gifImage = gifFile->SavedImages[i];
         GifImageDesc imgDesc = gifImage.ImageDesc;
         GraphicsControlBlock gcb;
         int gifTransIndex;
-        size_t pixCount = imgDesc.Width * imgDesc.Height;
+        int gifDelay;
+        int disposal;
 
-        images[i].offsetX =  imgDesc.Left;
-        images[i].offsetY = -imgDesc.Top;
-        images[i].width  = imgDesc.Width;
-        images[i].height = imgDesc.Height;
-        images[i].raster = malloc(pixCount);
-
-        if (DGifSavedExtensionToGCB(gifFile, i, &gcb) == GIF_ERROR)
+        if (DGifSavedExtensionToGCB(gifFile, i, &gcb) == GIF_ERROR) {
             gifTransIndex = -1;
-        else
+            disposal = DISPOSAL_UNSPECIFIED;
+            gifDelay = 8;
+        }
+        else {
             gifTransIndex = gcb.TransparentColor;
+            disposal = gcb.DisposalMode;
+            gifDelay = gcb.DelayTime;
+        }
 
-        delays[i] = gcb.DelayTime * 0.01; /* convert to seconds */
+        /* Seems GIMP and browsers treat background as transparent */
+        gifBgIndex = gifTransIndex;
+        delays[i] = gifDelay * 0.01; /* convert to seconds */
 
+        if (i == 0 || disposal == DISPOSAL_UNSPECIFIED ||
+                disposal == DISPOSE_BACKGROUND) {
+            if (disposal == DISPOSE_BACKGROUND) {
+                memset(imgBuffer, gifBgIndex, canvasPixCount);
+            }
+            else {
+                memset(imgBuffer, gifTransIndex, canvasPixCount);
+            }
+        }
+
+        if (disposal == DISPOSE_PREVIOUS) {
+            memcpy(prevBuffer, imgBuffer, canvasPixCount);
+        }
+
+        blit(imgBuffer, gifImage.RasterBits, gifFile->SWidth, gifFile->SHeight,
+                imgDesc.Width, imgDesc.Height, imgDesc.Left, imgDesc.Top,
+                gifTransIndex,
+                disposal == DISPOSE_BACKGROUND ? gifBgIndex : -1);
+
+        struct Rect rect = minRect(imgBuffer, gifFile->SWidth, gifFile->SHeight,
+                gifTransIndex);
+
+        images[i].offsetX =  rect.left;
+        images[i].offsetY = -rect.top;
+        images[i].width  = rect.width;
+        images[i].height = rect.height;
+        images[i].raster = malloc(rect.width * rect.height);
+
+        sampleRect(imgBuffer, images[i].raster, gifFile->SWidth,
+                gifFile->SHeight, rect, gifTransIndex, paletteLookup);
+
+        if (disposal == DISPOSE_PREVIOUS) {
+            memcpy(imgBuffer, prevBuffer, canvasPixCount);
+        }
+
+        /* OLD CODE
+        
         for (size_t j = 0; j < pixCount; j++) {
             char color = gifImage.RasterBits[j];
             if (color == gifTransIndex)
-                images[i].raster[j] = (char)SPR_TRANS_IDX;
+                images[i].raster[j] = (uint8_t)SPR_TRANS_IDX;
             else
                 images[i].raster[j] = paletteLookup[(int)color];
         }
+
+        /OLD CODE */
     }
 
     if (version == SPR_VER_QUAKE) {
@@ -318,9 +486,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < gifFile->ImageCount; i++) {
             Spr_appendSingleFrame(sprite, images + i);
         }
-#if 1
         Spr_appendSingleFrame(sprite, images); /* dummy frame */
-#endif
     }
 
     Spr_write(sprite, sprFileName, sprFatalError);
