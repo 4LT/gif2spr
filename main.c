@@ -342,13 +342,15 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    /* try to use global color map, use 1st frame's if global is null */
     gifColorMap = gifFile->SColorMap;
+    if (gifColorMap == (void *)0) {
+        gifColorMap = gifFile->SavedImages[0].ImageDesc.ColorMap;
+    }
 
     if (version == SPR_VER_HL) {
         colorCt = (uint16_t)(gifColorMap->ColorCount);
         for (int i = 0; i < colorCt; i++) {
-            /* identity lookup */
-            paletteLookup[i] = (uint8_t)i;
             /* copy colors */
             colors[i].rgb[0] = gifColorMap->Colors[i].Red;
             colors[i].rgb[1] = gifColorMap->Colors[i].Green;
@@ -386,20 +388,11 @@ int main(int argc, char *argv[])
             SPR_TEX_ALPHA_TEST,
             gifFile->SWidth,
             gifFile->SHeight,
-            SPR_SYNC_YES,
+            SPR_SYNC_RANDOM,
             colorCt,
             colors,
             (int32_t)floor(  -origin.x  * gifFile->SWidth),
             (int32_t)floor((1-origin.y) * gifFile->SHeight) );
-
-    gifColorMap = gifFile->SColorMap;
-    for (int i = 0; i < gifColorMap->ColorCount; i++) {
-        struct Spr_color color;
-        color.rgb[0] = gifColorMap->Colors[i].Red;
-        color.rgb[1] = gifColorMap->Colors[i].Green;
-        color.rgb[2] = gifColorMap->Colors[i].Blue;
-        paletteLookup[i] = Spr_nearestIndex(sprite, color);
-    }
 
     canvasPixCount = gifFile->SWidth * gifFile->SHeight;
     imgBuffer = malloc(canvasPixCount);
@@ -412,9 +405,22 @@ int main(int argc, char *argv[])
         SavedImage gifImage = gifFile->SavedImages[i];
         GifImageDesc imgDesc = gifImage.ImageDesc;
         GraphicsControlBlock gcb;
+        ColorMapObject *localColorMap = imgDesc.ColorMap;
         int gifTransIndex;
         int gifDelay;
         int disposal;
+
+        if (localColorMap == (void *)0)
+            localColorMap = gifColorMap;
+
+        for (int i = 0; i < localColorMap->ColorCount; i++) {
+            struct Spr_color color;
+            color.rgb[0] = localColorMap->Colors[i].Red;
+            color.rgb[1] = localColorMap->Colors[i].Green;
+            color.rgb[2] = localColorMap->Colors[i].Blue;
+            paletteLookup[i] = Spr_nearestIndex(sprite, color);
+        }
+
 
         if (DGifSavedExtensionToGCB(gifFile, i, &gcb) == GIF_ERROR) {
             gifTransIndex = -1;
