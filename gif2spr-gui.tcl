@@ -189,6 +189,12 @@ proc writeSpr {} {
     if {$::palPath != ""} {
         lappend cmd -palette "$::palPath"
     }
+    if {$::game == "hl"} {
+        lappend cmd -blendmode $::blendMode
+    }
+    if {$::game == "hl" && $::blendMode == "index-alpha"} {
+        lappend cmd -color $::color
+    }
     lappend cmd "$::gifPath" "$sprFile"
 
     try {
