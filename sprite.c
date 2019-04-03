@@ -379,7 +379,7 @@ double colorDistance(struct Spr_color color1, struct Spr_color color2)
             B_WEIGHT * B_WEIGHT * deltas[2]);
 }
 
-char Spr_nearestIndex(struct Spr_Sprite *sprite, struct Spr_color color)
+uint8_t Spr_nearestIndex(struct Spr_Sprite *sprite, struct Spr_color color)
 {
     struct Spr_palette pal = sprite->palette;
     double minDist = INT_MAX;
@@ -394,4 +394,14 @@ char Spr_nearestIndex(struct Spr_Sprite *sprite, struct Spr_color color)
         }
     }
     return nearestIndex;
+}
+
+uint8_t Spr_brightness(struct Spr_color color) 
+{
+    uint32_t maxBright = R_WEIGHT * 255 + G_WEIGHT * 255 + B_WEIGHT * 255;
+    uint32_t bright =
+        R_WEIGHT * color.rgb[0] +
+        G_WEIGHT * color.rgb[1] +
+        B_WEIGHT * color.rgb[2];
+    return 255 * bright / maxBright;
 }

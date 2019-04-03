@@ -65,11 +65,20 @@ static const char *ALIGNMENT_NAMES[N_ALIGNMENTS] = {
     "oriented",
     "vp-parallel-oriented" };
 
+#define N_BLENDMODES 4
+static const char *BLENDMODE_NAMES[N_BLENDMODES] = {
+    "normal",
+    "additive",
+    "index-alpha",
+    "alpha-test" };
+
 static char *gifFileName = NULL;
 static char *sprFileName = NULL;
 static char *palFileName = NULL;
 static char *originString = NULL;
 static char *alignmentOption = NULL;
+static char *blendModeOption = NULL;
+static char *blendColorCode = NULL;
 static enum Spr_version version = SPR_VER_QUAKE; 
 
 static void blit
@@ -211,9 +220,23 @@ static int loadArgs(int argc, char *argv[])
             else if (strcmp(argv[i], "-quake") == 0) {
                 version = SPR_VER_QUAKE;
             }
+            else if (strcmp(argv[i], "-blendmode") == 0 ||
+                     strcmp(argv[i], "-b") == 0) {
+                i++;
+                if (i >= argc)
+                    return 4;
+                blendModeOption = argv[i];
+            }
+            else if (strcmp(argv[i], "-color") == 0 ||
+                     strcmp(argv[i], "-c") == 0) {
+                i++;
+                if (i >= argc)
+                    return 5;
+                blendColorCode = argv[i];
+            }
             else {
                 fprintf(stderr, "Unknown option \"%s\"\n", argv[i]);
-                return 4;
+                return 6;
             }
         }
         else if (gifFileName == NULL) {
@@ -223,12 +246,12 @@ static int loadArgs(int argc, char *argv[])
             sprFileName = argv[i];
         }
         else {
-            return 5;
+            return 7;
         }
     }
     
     if (sprFileName == NULL)
-        return 6;
+        return 8;
     else
         return 0;
 }
@@ -282,6 +305,29 @@ static struct DVec2D parseOrigin(char *originString)
     return (struct DVec2D){ x, y };
 }
 
+static struct Spr_color parseColor(const char *code) {
+    struct Spr_color color;
+    uint32_t colorNum;
+
+    if (strlen(code) != 7 || code[0] != '#') {
+        fprintf(stderr, "Invalid color code \"%s\"\n", code);
+        exit(EXIT_FAILURE);
+    }
+
+    char *end;
+    colorNum = strtol(code + 1, &end, 16);
+
+    if (end == code + 1) {
+        fprintf(stderr, "Invalid color code \"%s\"\n", code);
+    }
+
+    color.rgb[0] = (uint8_t)((colorNum >> 16) & 0xff);
+    color.rgb[1] = (uint8_t)((colorNum >> 8) & 0xff);
+    color.rgb[2] = (uint8_t)(colorNum & 0xff);
+
+    return color;
+}
+
 int main(int argc, char *argv[])
 {
     int err; /* gif error code */
@@ -294,6 +340,8 @@ int main(int argc, char *argv[])
     float *delays;
     struct DVec2D origin;
     int alignment = -1;
+    int blendMode = -1;
+    struct Spr_color blendColor;
     static uint8_t paletteLookup[SPR_MAX_PAL_SIZE];
     uint8_t *imgBuffer;
     uint8_t *prevBuffer;
@@ -309,7 +357,9 @@ int main(int argc, char *argv[])
         /*             7       
          *       4567890123456*/
                 "[-origin X,Y]\n", stderr);
-        fputs("       [-quake] [-hl] GIFFILE SPRFILE\n\n", stderr);
+        fputs("       [-quake] [-hl] [-b|-blendmode BLENDMODE] [-c|-color CODE]"
+                "\n", stderr);
+        fputs("       GIFFILE SPRFILE\n\n", stderr);
         fputs("    ALIGNMENT Sprite orientation. Options "
                 "(defaults to vp-parallel):\n", stderr);
         for (int i = 0; i < N_ALIGNMENTS; i++)
@@ -320,6 +370,12 @@ int main(int argc, char *argv[])
                 "Defaults to 0.5 (center).\n", stderr);
         fputs("    Y         Decimal origin Y component. "
                 "Defaults to 0.5 (center).\n", stderr);
+        fputs("    BLENDMODE (HL only) Options (defaults to normal):\n",
+                stderr);
+        for (int i = 0; i < N_BLENDMODES; i++)
+            fprintf(stderr, "        %s\n", BLENDMODE_NAMES[i]);
+        fputs("    CODE      Index-alpha color code. e.g. \"#ff8000\"\n",
+                stderr);
         fputs("    -quake    Write sprite in Quake format (default).\n",
                 stderr);
         fputs("    -hl       Write sprite in Half-Life format.\n", stderr);
@@ -330,7 +386,7 @@ int main(int argc, char *argv[])
 
     gifFile = DGifOpenFileName(gifFileName, &err);
 
-    if (gifFile == NULL) {
+    if (gifFile == (void *)0) {
         fprintf(stderr, "%s:\n", gifFileName);
         fprintf(stderr, "%s.\n", GifErrorString(err));
         exit(EXIT_FAILURE);
@@ -348,18 +404,48 @@ int main(int argc, char *argv[])
         gifColorMap = gifFile->SavedImages[0].ImageDesc.ColorMap;
     }
 
+    if (blendModeOption == (void *)0) {
+        blendMode = SPR_TEX_NORMAL;
+    }
+    else {
+        for ( int i = 0; i < N_BLENDMODES && blendMode == -1; i++) {
+            if (strcmp(blendModeOption, BLENDMODE_NAMES[i]) == 0)
+                blendMode = i;
+        }
+        if (blendMode == -1) {
+            fprintf(stderr, "Unknown blend mode \"%s\"\n", blendModeOption);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (blendColorCode == (void *)0) {
+        blendColor = (struct Spr_color) {{ 255, 255, 255 }};
+    }
+    else {
+        blendColor = parseColor(blendColorCode);
+    }
+
     if (version == SPR_VER_HL) {
-        colorCt = (uint16_t)(gifColorMap->ColorCount);
-        for (int i = 0; i < colorCt; i++) {
-            /* copy colors */
-            colors[i].rgb[0] = gifColorMap->Colors[i].Red;
-            colors[i].rgb[1] = gifColorMap->Colors[i].Green;
-            colors[i].rgb[2] = gifColorMap->Colors[i].Blue;
+        if (blendMode == SPR_TEX_INDEX_ALPHA) {
+            /* seems to require 256 colors to work, using color at index 255 */
+            colorCt = SPR_MAX_PAL_SIZE;
+            for (int i = 0; i < colorCt; i++) {
+                colors[i] = blendColor;
+            }
+        }
+        else {
+            colorCt = (uint16_t)(gifColorMap->ColorCount);
+            for (int i = 0; i < colorCt; i++) {
+                /* copy colors */
+                colors[i].rgb[0] = gifColorMap->Colors[i].Red;
+                colors[i].rgb[1] = gifColorMap->Colors[i].Green;
+                colors[i].rgb[2] = gifColorMap->Colors[i].Blue;
+            }
         }
     }
     else {
         colorCt = SPR_Q_PAL_SIZE;
-        if (palFileName != NULL)
+        if (palFileName != (void *)0)
             Spr_readPalette(palFileName, colors, sprFatalError);
         else
             Spr_defaultQPalette(colors);
@@ -367,7 +453,7 @@ int main(int argc, char *argv[])
 
     origin = parseOrigin(originString);
 
-    if (alignmentOption == NULL) {
+    if (alignmentOption == (void *)0) {
         alignment = SPR_ALIGN_VP_PARALLEL;
     }
     else
@@ -385,7 +471,7 @@ int main(int argc, char *argv[])
     sprite = Spr_new(
             version,
             alignment,
-            SPR_TEX_ALPHA_TEST,
+            blendMode,
             gifFile->SWidth,
             gifFile->SHeight,
             SPR_SYNC_RANDOM,
@@ -418,7 +504,12 @@ int main(int argc, char *argv[])
             color.rgb[0] = localColorMap->Colors[i].Red;
             color.rgb[1] = localColorMap->Colors[i].Green;
             color.rgb[2] = localColorMap->Colors[i].Blue;
-            paletteLookup[i] = Spr_nearestIndex(sprite, color);
+            if (version == SPR_VER_HL && blendMode == SPR_TEX_INDEX_ALPHA) {
+                paletteLookup[i] = Spr_brightness(color);
+            }
+            else {
+                paletteLookup[i] = Spr_nearestIndex(sprite, color);
+            }
         }
 
 

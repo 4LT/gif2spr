@@ -156,6 +156,10 @@ void Spr_defaultQPalette(struct Spr_color *colors);
 
 /* Find index in the sprite's palette with nearest color to the color provided.
  */
-char Spr_nearestIndex(struct Spr_Sprite *sprite, struct Spr_color color);
+uint8_t Spr_nearestIndex(struct Spr_Sprite *sprite, struct Spr_color color);
+
+/* Get 0-255 brightness of color using nearestIndex's color weights.
+ */
+uint8_t Spr_brightness(struct Spr_color color);
 
 #endif
