@@ -28,6 +28,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include <limits.h>
 
 #include "quakepal.h"
 
@@ -381,7 +382,7 @@ double colorDistance(struct Spr_color color1, struct Spr_color color2)
 char Spr_nearestIndex(struct Spr_Sprite *sprite, struct Spr_color color)
 {
     struct Spr_palette pal = sprite->palette;
-    double minDist = 255 * 3;
+    double minDist = INT_MAX;
     char nearestIndex = 0;
     for (int i = 0; i < pal.colorCt; i++) {
         if (i != pal.colorCt - 1) {
