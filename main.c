@@ -41,6 +41,8 @@
 
 #include "sprite.h"
 
+#define FRAME_BORDER 2
+
 struct DVec2D { double x; double y; };
 
 struct Rect {
@@ -131,7 +133,7 @@ static void sampleRect
 }
 
 static struct Rect minRect
-(const uint8_t *buffer, int bufW, int bufH, int transparent)
+(const uint8_t *buffer, int bufW, int bufH, int transparent, int border)
 {
     int left = 0;
     int right = bufW-1;
@@ -186,6 +188,16 @@ static struct Rect minRect
         }
         y--;
     }
+
+    left-= border;
+    right+= border;
+    top-= border;
+    bottom+= border;
+
+    left = left < 0 ? 0 : left;
+    top = top < 0 ? 0 : top;
+    right = right >= bufW ? bufW-1 : right;
+    bottom = bottom >= bufH ? bufH-1 : bottom;
 
     struct Rect rect;
     rect.width = right >= left ? right - left + 1 : 0;
@@ -553,7 +565,7 @@ int main(int argc, char *argv[])
                 disposal == DISPOSE_BACKGROUND ? gifBgIndex : -1);
 
         struct Rect rect = minRect(imgBuffer, gifFile->SWidth, gifFile->SHeight,
-                gifTransIndex);
+                gifTransIndex, FRAME_BORDER);
 
         images[i].offsetX =  rect.left;
         images[i].offsetY = -rect.top;
