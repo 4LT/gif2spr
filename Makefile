@@ -59,5 +59,4 @@ clean-giflib:
 clean:
 	rm -f $(LOCAL_OBJECTS)
 	rm -f $(OUTPUT)
-	rm -f defpal.h
 	rm -f gif2spr.zip
