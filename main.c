@@ -34,7 +34,7 @@
 #include <errno.h>
 
 #ifdef COMPILE_GIFLIB
-#	include "giflib-5.1.4/lib/gif_lib.h"
+#	include "giflib-5.1.9/gif_lib.h"
 #else
 #	include <gif_lib.h>
 #endif

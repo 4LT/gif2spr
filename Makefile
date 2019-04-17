@@ -1,9 +1,9 @@
-GIFLIB=giflib-5.1.4
+GIFLIB=giflib-5.1.9
 CFLAGS := -std=c99 -Wall -pedantic -ggdb
 LOCAL_OBJECTS= main.o sprite.o
-GIFLIB_OBJECTS= $(GIFLIB)/lib/dgif_lib.o $(GIFLIB)/lib/gif_err.o \
-	$(GIFLIB)/lib/gif_hash.o $(GIFLIB)/lib/gifalloc.o \
-	$(GIFLIB)/lib/openbsd-reallocarray.o
+GIFLIB_OBJECTS= $(GIFLIB)/dgif_lib.o $(GIFLIB)/gif_err.o \
+	$(GIFLIB)/gif_hash.o $(GIFLIB)/gifalloc.o \
+	$(GIFLIB)/openbsd-reallocarray.o
 OBJECTS := $(LOCAL_OBJECTS)
 
 ifeq ($(findstring CYGWIN, $(shell uname)), CYGWIN)
@@ -33,11 +33,7 @@ endif
 all: $(OUTPUT)
 
 $(GIFLIB_OBJECTS): $(GIFLIB)/Makefile
-	$(MAKE) -C $(GIFLIB) SUBDIRS=lib
-
-$(GIFLIB)/Makefile:
-	cd $(GIFLIB) && \
-	CC=$(CC) ./configure
+	$(MAKE) -C $(GIFLIB)
 
 main.o: main.c quakepal.h sprite.h
 	$(CC) $(CFLAGS) -c main.c

@@ -38,3 +38,19 @@ gif2spr
 
 # Generated files
 gif2spr.zip
+
+# Generated giflib programs
+/giflib-5.1.9/gif2rgb
+/giflib-5.1.9/gifbg
+/giflib-5.1.9/gifbuild
+/giflib-5.1.9/gifclrmp
+/giflib-5.1.9/gifcolor
+/giflib-5.1.9/gifecho
+/giflib-5.1.9/giffilter
+/giflib-5.1.9/giffix
+/giflib-5.1.9/gifhisto
+/giflib-5.1.9/gifinto
+/giflib-5.1.9/gifsponge
+/giflib-5.1.9/giftext
+/giflib-5.1.9/giftool
+/giflib-5.1.9/gifwedge
