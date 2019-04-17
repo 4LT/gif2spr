@@ -50,9 +50,9 @@ gif2spr.zip: COPYING README.md $(OUTPUT)
 	zip gif2spr.zip COPYING README.md $(OUTPUT)
 
 clean-giflib:
-	make -C $(GIFLIB) -f Makefile distclean
+	make -C $(GIFLIB) -f Makefile clean
 
-clean:
+clean: clean-giflib
 	rm -f $(LOCAL_OBJECTS)
 	rm -f $(OUTPUT)
 	rm -f gif2spr.zip
