@@ -20,7 +20,7 @@ build-windows:
         - make TARGET_PLAT=win32
     artifacts:
         paths:
-            gif2spr.exe
+            - gif2spr.exe
 
 # run tests using the binary built before
 # test:
