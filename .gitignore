@@ -22,7 +22,8 @@
 
 # Executables
 gif2spr
-*.exe
+gif2spr.exe
+gif2spr-gui.exe
 *.out
 *.app
 *.i*86
