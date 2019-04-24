@@ -1,16 +1,26 @@
 image: gcc
 
-build:
-  stage: build
-  # instead of calling g++ directly you can also use some build toolkit like make
-  # install the necessary build tools when needed
-  before_script:
-    - apt update && apt -y install libgif-dev
-  script:
-    - make
-  artifacts:
-    paths:
-      - gif2spr
+stages:
+    - build
+
+build-linux:
+    stage: build
+    # instead of calling g++ directly you can also use some build toolkit like make
+    # install the necessary build tools when needed
+    before_script:
+        - apt update && apt -y install libgif-dev 
+    script:
+        - make
+
+build-windows:
+    stage: build
+    before_script:
+        - apt update && apt -y install mingw-w64
+    script:
+        - make TARGET_PLAT=win32
+    artifacts:
+        paths:
+            gif2spr.exe
 
 # run tests using the binary built before
 # test:
