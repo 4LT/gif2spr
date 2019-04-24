@@ -88,9 +88,13 @@ if {$NIX && !$APP} { ;# Linux, Cygwin, cmd-line Mac
     set USER_DATA_PATH [file join $env(HOME) Library "Application Support"\
         gif2spr]
 } else { ;# Assume Windows
-    set DATA_PATH [file dirname $SCRIPT_PATH]
+    if {[info exists ::vfs::tclkit_version]} {
+        set DATA_PATH [file dirname [info nameofexecutable]]
+    } else {
+        set DATA_PATH [file dirname $SCRIPT_PATH]
+    }
     set USER_DATA_PATH [file join $env(USERPROFILE) AppData Local gif2spr]
-    set GIF2SPR [file join $DATA_PATH gif2spr]
+    set GIF2SPR [file join $DATA_PATH gif2spr.exe]
 }
 
 try {
