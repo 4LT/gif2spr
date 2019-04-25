@@ -71,7 +71,7 @@ win-gui: gif2spr-gui.exe
 
 gif2spr-gui.exe: gif2spr.exe
 	$(SDX) qwrap gif2spr-gui.tcl gif2spr-gui -runtime tclkit-gui.exe &&\
-		mv gif2spr-gui{,.exe}
+		mv gif2spr-gui gif2spr-gui.exe
 
 clean-giflib:
 	make -C $(GIFLIB) -f Makefile clean
