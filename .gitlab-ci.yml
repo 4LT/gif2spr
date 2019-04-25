@@ -8,14 +8,14 @@ build-linux:
     # instead of calling g++ directly you can also use some build toolkit like make
     # install the necessary build tools when needed
     before_script:
-        - apt-get update && apt-get install libgif-dev 
+        - apt-get update && apt-get -y install libgif-dev 
     script:
         - make
 
 build-windows:
     stage: build
     before_script:
-        - apt-get update && apt-get install mingw-w64 wget
+        - apt-get update && apt-get -y install mingw-w64 wget
     script:
         - mkdir buildbin
         - wget -o buildbin/tclkit http://tclkits.rkeene.org/fossil/raw/tclkit-8.6.3-rhel5-x86_64?name=36b5cb68899cfcb79417a29f9c6d8176ebae0d24
