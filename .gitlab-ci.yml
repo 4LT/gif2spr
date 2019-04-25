@@ -15,11 +15,12 @@ build-linux:
 build-windows:
     stage: build
     before_script:
-        - apt-get update && apt-get -y install mingw-w64 wget
+        - apt-get update && apt-get -y install mingw-w64 wget gzip
     script:
         - mkdir buildbin
-        - wget -o buildbin/tclkit http://tclkits.rkeene.org/fossil/raw/tclkit-8.6.3-rhel5-x86_64?name=36b5cb68899cfcb79417a29f9c6d8176ebae0d24
-        - wget -o buildbin/sdx.kit https://chiselapp.com/user/aspect/repository/sdx/uv/sdx-20110317.kit
+        - wget -O buildbin/tclkit.gz http://www.patthoyts.tk/tclkit/linux-x86_64/8.6.7/tclkit-8.6.7.gz
+        - wget -O buildbin/sdx.kit https://chiselapp.com/user/aspect/repository/sdx/uv/sdx-20110317.kit
+        - gunzip buildbin/tclkit.gz
         - chmod +x buildbin/tclkit buildbin/sdx.kit
         - export PATH=`pwd`/buildbin:$PATH
         - make TARGET_PLAT=win32 win-gui
