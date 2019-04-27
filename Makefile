@@ -12,17 +12,26 @@ SDX=sdx.kit
 
 ifeq ($(findstring CYGWIN,$(TARGET_PLAT)), CYGWIN)
 	WIN=1
+	NIX=1
 else ifeq ($(findstring win32,$(TARGET_PLAT)), win32)
 	WIN=1
+	NIX=0
 else ifeq ($(findstring MINGW,$(TARGET_PLAT)), MINGW)
 	WIN=1
+	NIX=0
 else
 	WIN=0
+	NIX=0
 endif
 
 ifeq ($(WIN),1)
 	COMPILE_GIFLIB=true
 	OUTPUT=gif2spr.exe
+else
+	OUTPUT=gif2spr
+endif
+
+ifeq ($(WIN)$(NIX),10)
 	CC=x86_64-w64-mingw32-gcc
 	LD=x86_64-w64-mingw32-ld
 	AR=x86_64-w64-mingw32-ar
