@@ -189,21 +189,31 @@ static struct Rect minRect
         y--;
     }
 
-    left-= border;
-    right+= border;
-    top-= border;
-    bottom+= border;
-
-    left = left < 0 ? 0 : left;
-    top = top < 0 ? 0 : top;
-    right = right >= bufW ? bufW-1 : right;
-    bottom = bottom >= bufH ? bufH-1 : bottom;
-
     struct Rect rect;
-    rect.width = right >= left ? right - left + 1 : 0;
-    rect.height = bottom >= top ? bottom - top + 1 : 0;
-    rect.left = left;
-    rect.top = top;
+
+    // if we hit no non-transparent pixels
+    if (left >= bufW) {
+        rect.width = 0;
+        rect.height = 0;
+        rect.left = 0;
+        rect.top = 0;
+    }
+    else {
+        left-= border;
+        right+= border;
+        top-= border;
+        bottom+= border;
+
+        left = left < 0 ? 0 : left;
+        top = top < 0 ? 0 : top;
+        right = right >= bufW ? bufW-1 : right;
+        bottom = bottom >= bufH ? bufH-1 : bottom;
+
+        rect.width = right >= left ? right - left + 1 : 0;
+        rect.height = bottom >= top ? bottom - top + 1 : 0;
+        rect.left = left;
+        rect.top = top;
+    }
     return rect;
 }
 
