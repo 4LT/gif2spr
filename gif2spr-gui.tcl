@@ -178,10 +178,18 @@ proc onSetGame {args} {
         .l.blendlbl state !disabled
         .l.blendcombo state !disabled
         .r.dummy state !disabled
+        .l.pallbl state disabled
+        .l.palframe.entry state disabled
+        .l.palframe.selbtn state disabled
+        .l.palframe.clrbtn state disabled
     } else {
         .l.blendlbl state disabled
         .l.blendcombo state disabled
         .r.dummy state disabled
+        .l.pallbl state !disabled
+        .l.palframe.entry state !disabled
+        .l.palframe.selbtn state !disabled
+        .l.palframe.clrbtn state !disabled
     }
     dict set ::initDict game $::game
     onSetBlendModeOrGame
@@ -218,13 +226,14 @@ proc writeSpr {} {
 
     set cmd [list exec $::GIF2SPR -$::game -origin $::origin]
     lappend cmd -alignment $::alignment
-    if {$::palPath != ""} {
-        lappend cmd -palette "$::palPath"
-    }
     if {$::game == "hl"} {
         lappend cmd -blendmode $::blendMode
         if {$::useDummy} {
             lappend cmd -dummy
+        }
+    } else {
+        if {$::palPath != ""} {
+            lappend cmd -palette "$::palPath"
         }
     }
     if {$::game == "hl" && $::blendMode == "index-alpha"} {
