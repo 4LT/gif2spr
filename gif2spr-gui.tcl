@@ -134,7 +134,7 @@ set alignment vp-parallel
 set palPath ""
 set blendMode normal
 set color #ffffff
-set useDummy 0
+set useDummy 1
 
 proc onClose {} {
     try {
