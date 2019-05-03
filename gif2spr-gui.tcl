@@ -134,6 +134,7 @@ set alignment vp-parallel
 set palPath ""
 set blendMode normal
 set color #ffffff
+set useDummy 1
 
 proc onClose {} {
     try {
@@ -176,9 +177,11 @@ proc onSetGame {args} {
     if {$::game == "hl"} {
         .l.blendlbl state !disabled
         .l.blendcombo state !disabled
+        .r.dummy state !disabled
     } else {
         .l.blendlbl state disabled
         .l.blendcombo state disabled
+        .r.dummy state disabled
     }
     dict set ::initDict game $::game
     onSetBlendModeOrGame
@@ -220,6 +223,9 @@ proc writeSpr {} {
     }
     if {$::game == "hl"} {
         lappend cmd -blendmode $::blendMode
+        if {$::useDummy} {
+            lappend cmd -dummy
+        }
     }
     if {$::game == "hl" && $::blendMode == "index-alpha"} {
         lappend cmd -color $::color
@@ -358,6 +364,8 @@ grid [ttk::radiobutton .r.origin.w -variable origin -text W -value 0.0,0.5]\
 grid [ttk::radiobutton .r.origin.sw -variable origin -text SW -value 0.0,0.0]\
     [ttk::radiobutton .r.origin.s -variable origin -text S -value 0.5,0.0]\
     [ttk::radiobutton .r.origin.se -variable origin -text SE -value 1.0,0.0]
+
+grid [ttk::checkbutton .r.dummy -text "Append dummy frame" -variable useDummy]
 
 foreach radio [grid slave .r.origin] {
     grid configure $radio -padx 4 -pady 4 -sticky w

@@ -87,6 +87,7 @@ static char *alignmentOption = NULL;
 static char *blendModeOption = NULL;
 static char *blendColorCode = NULL;
 static enum Spr_version version = SPR_VER_QUAKE; 
+static bool useDummyFrame = false;
 
 static void blit
 (uint8_t *buffer, const uint8_t *frame, int bufW, int bufH,
@@ -261,6 +262,10 @@ static int loadArgs(int argc, char *argv[])
                     return 5;
                 blendColorCode = argv[i];
             }
+            else if (strcmp(argv[i], "-dummy") == 0 ||
+                     strcmp(argv[i], "-d") == 0) {
+                useDummyFrame = true;
+            }
             else {
                 fprintf(stderr, "Unknown option \"%s\"\n", argv[i]);
                 return 6;
@@ -385,7 +390,7 @@ int main(int argc, char *argv[])
          *       4567890123456*/
                 "[-origin X,Y]\n", stderr);
         fputs("       [-quake] [-hl] [-b|-blendmode BLENDMODE] [-c|-color CODE]"
-                "\n", stderr);
+                "[-d|-dummy]\n", stderr);
         fputs("       GIFFILE SPRFILE\n\n", stderr);
         fputs("    ALIGNMENT Sprite orientation. Options "
                 "(defaults to vp-parallel):\n", stderr);
@@ -406,6 +411,7 @@ int main(int argc, char *argv[])
         fputs("    -quake    Write sprite in Quake format (default).\n",
                 stderr);
         fputs("    -hl       Write sprite in Half-Life format.\n", stderr);
+        fputs("    -dummy    (HL) Append an empty \"dummy\" frame.\n", stderr);
         fputs("    GIFFILE   Input GIF file.\n", stderr);
         fputs("    SPRFILE   Output SPRITE file.\n", stderr);
         exit(EXIT_FAILURE);
@@ -610,7 +616,16 @@ int main(int argc, char *argv[])
         for (int i = 0; i < gifFile->ImageCount; i++) {
             Spr_appendSingleFrame(sprite, images + i);
         }
-        Spr_appendSingleFrame(sprite, images); /* dummy frame */
+        if (useDummyFrame) {
+            struct Spr_image dummy;
+            dummy.offsetX = 0;
+            dummy.offsetY = 0;
+            dummy.width = 0;
+            dummy.height = 0;
+            dummy.raster = malloc(0);
+            Spr_appendSingleFrame(sprite, &dummy);
+            free(dummy.raster);
+        }
     }
 
     Spr_write(sprite, sprFileName, sprFatalError);
