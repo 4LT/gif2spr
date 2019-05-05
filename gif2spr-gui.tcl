@@ -224,6 +224,10 @@ proc writeSpr {} {
         dict set ::initDict dirs spr [file dirname $sprFile]
     }
 
+    if {![regexp -nocase -- {\.spr$} $sprFile] && $::WIN} {
+        set sprFile $sprFile.spr
+    }
+
     set cmd [list exec $::GIF2SPR -$::game -origin $::origin]
     lappend cmd -alignment $::alignment
     if {$::game == "hl"} {
