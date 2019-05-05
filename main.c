@@ -595,18 +595,6 @@ int main(int argc, char *argv[])
         if (disposal == DISPOSE_PREVIOUS) {
             memcpy(imgBuffer, prevBuffer, canvasPixCount);
         }
-
-        /* OLD CODE
-        
-        for (size_t j = 0; j < pixCount; j++) {
-            char color = gifImage.RasterBits[j];
-            if (color == gifTransIndex)
-                images[i].raster[j] = (uint8_t)SPR_TRANS_IDX;
-            else
-                images[i].raster[j] = paletteLookup[(int)color];
-        }
-
-        /OLD CODE */
     }
 
     if (version == SPR_VER_QUAKE) {
