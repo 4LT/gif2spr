@@ -90,6 +90,17 @@ static enum Spr_version version = SPR_VER_QUAKE;
 static bool useDummyFrame = false;
 static bool extendFrames = false;
 
+static struct Spr_color gradient
+(struct Spr_color color1, struct Spr_color color2, uint8_t value)
+{
+    struct Spr_color outColor;
+    for (int i = 0; i < 3; i++) {
+        outColor.rgb[i] = (uint8_t)((color1.rgb[i] * (int)(255-value) +
+                color2.rgb[i] * (int)value) / 255);
+    }
+    return outColor;
+}
+
 static void blit
 (uint8_t *buffer, const uint8_t *frame, int bufW, int bufH,
  int frameW, int frameH, int left, int top, int transparent, int bgIndex)
@@ -468,8 +479,19 @@ int main(int argc, char *argv[])
         if (blendMode == SPR_TEX_INDEX_ALPHA) {
             /* seems to require 256 colors to work, using color at index 255 */
             colorCt = SPR_MAX_PAL_SIZE;
+            int halfBright = Spr_brightness((struct Spr_color) {{128,128,128}});
+            int blendBright = Spr_brightness(blendColor);
+            struct Spr_color bgColor;
+            
+            if (blendBright < halfBright) {
+                bgColor = (struct Spr_color) {{ 255, 255, 255 }};
+            }
+            else {
+                bgColor = (struct Spr_color) {{ 0, 0, 0 }};
+            }
+
             for (int i = 0; i < colorCt; i++) {
-                colors[i] = blendColor;
+                colors[i] = gradient(bgColor, blendColor, i);
             }
         }
         else {
