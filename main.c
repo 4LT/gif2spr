@@ -123,7 +123,7 @@ static void blit
 
 static void sampleRect
 (const uint8_t *buffer, uint8_t *rectRaster, int bufW, int bufH,
- struct Rect rect, int transparent, uint8_t *lookup)
+ struct Rect rect, int gifTrans, uint8_t sprTrans, uint8_t *lookup)
 {
     for (int rx = 0; rx < rect.width; rx++)
     for (int ry = 0; ry < rect.height; ry++) {
@@ -132,8 +132,8 @@ static void sampleRect
 
         if (bx >= 0 && bx < bufW && by >= 0 && by < bufH) {
             uint8_t color = buffer[bx + bufW * by];
-            if (color == transparent) {
-                rectRaster[rx + rect.width * ry] = SPR_TRANS_IDX;
+            if (color == gifTrans) {
+                rectRaster[rx + rect.width * ry] = sprTrans;
             }
             else {
                 rectRaster[rx + rect.width * ry] = lookup[color];
@@ -626,8 +626,15 @@ int main(int argc, char *argv[])
         images[i].height = rect.height;
         images[i].raster = malloc(rect.width * rect.height);
 
-        sampleRect(imgBuffer, images[i].raster, gifFile->SWidth,
-                gifFile->SHeight, rect, gifTransIndex, paletteLookup);
+        if (blendMode == SPR_TEX_INDEX_ALPHA) {
+            sampleRect(imgBuffer, images[i].raster, gifFile->SWidth,
+                    gifFile->SHeight, rect, gifTransIndex, 0, paletteLookup);
+        }
+        else {
+            sampleRect(imgBuffer, images[i].raster, gifFile->SWidth,
+                    gifFile->SHeight, rect, gifTransIndex, SPR_TRANS_IDX,
+                    paletteLookup);
+        }
 
         if (disposal == DISPOSE_PREVIOUS) {
             memcpy(imgBuffer, prevBuffer, canvasPixCount);
@@ -654,7 +661,12 @@ int main(int argc, char *argv[])
                 dummy.height = 0;
             }
             dummy.raster = malloc(dummy.width * dummy.height);
-            memset(dummy.raster, SPR_TRANS_IDX, dummy.width * dummy.height);
+            if (blendMode == SPR_TEX_INDEX_ALPHA) {
+                memset(dummy.raster, 0, dummy.width * dummy.height);
+            }
+            else {
+                memset(dummy.raster, SPR_TRANS_IDX, dummy.width * dummy.height);
+            }
             Spr_appendSingleFrame(sprite, &dummy);
             free(dummy.raster);
         }
