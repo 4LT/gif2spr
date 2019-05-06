@@ -135,6 +135,7 @@ set palPath ""
 set blendMode normal
 set color #ffffff
 set useDummy 1
+set extend 0
 
 proc onClose {} {
     try {
@@ -238,6 +239,9 @@ proc writeSpr {} {
     }
     if {$::game == "hl" && $::blendMode == "index-alpha"} {
         lappend cmd -color $::color
+    }
+    if {$::extend} {
+        lappend cmd -extend
     }
     lappend cmd "$::gifPath" "$sprFile"
 
@@ -374,7 +378,11 @@ grid [ttk::radiobutton .r.origin.sw -variable origin -text SW -value 0.0,0.0]\
     [ttk::radiobutton .r.origin.s -variable origin -text S -value 0.5,0.0]\
     [ttk::radiobutton .r.origin.se -variable origin -text SE -value 1.0,0.0]
 
-grid [ttk::checkbutton .r.dummy -text "Append dummy frame" -variable useDummy]
+grid [ttk::checkbutton .r.dummy -text "Append dummy frame" -variable useDummy]\
+    -sticky w
+
+grid [ttk::checkbutton .r.extend -text "Extend frames to image dimensions"\
+    -variable extend] -sticky w
 
 foreach radio [grid slave .r.origin] {
     grid configure $radio -padx 4 -pady 4 -sticky w

@@ -88,6 +88,7 @@ static char *blendModeOption = NULL;
 static char *blendColorCode = NULL;
 static enum Spr_version version = SPR_VER_QUAKE; 
 static bool useDummyFrame = false;
+static bool extendFrames = false;
 
 static void blit
 (uint8_t *buffer, const uint8_t *frame, int bufW, int bufH,
@@ -266,6 +267,10 @@ static int loadArgs(int argc, char *argv[])
                      strcmp(argv[i], "-d") == 0) {
                 useDummyFrame = true;
             }
+            else if (strcmp(argv[i], "-extend") == 0 ||
+                     strcmp(argv[i], "-e") == 0) {
+                extendFrames = true;
+            }
             else {
                 fprintf(stderr, "Unknown option \"%s\"\n", argv[i]);
                 return 6;
@@ -390,8 +395,8 @@ int main(int argc, char *argv[])
          *       4567890123456*/
                 "[-origin X,Y]\n", stderr);
         fputs("       [-quake] [-hl] [-b|-blendmode BLENDMODE] [-c|-color CODE]"
-                "[-d|-dummy]\n", stderr);
-        fputs("       GIFFILE SPRFILE\n\n", stderr);
+                " [-d|-dummy]\n", stderr);
+        fputs("       [-e|-extend] GIFFILE SPRFILE\n\n", stderr);
         fputs("    ALIGNMENT Sprite orientation. Options "
                 "(defaults to vp-parallel):\n", stderr);
         for (int i = 0; i < N_ALIGNMENTS; i++)
@@ -412,6 +417,7 @@ int main(int argc, char *argv[])
                 stderr);
         fputs("    -hl       Write sprite in Half-Life format.\n", stderr);
         fputs("    -dummy    (HL) Append an empty \"dummy\" frame.\n", stderr);
+        fputs("    -extend   Extend frame boundaries to image size.\n", stderr);
         fputs("    GIFFILE   Input GIF file.\n", stderr);
         fputs("    SPRFILE   Output SPRITE file.\n", stderr);
         exit(EXIT_FAILURE);
@@ -580,8 +586,17 @@ int main(int argc, char *argv[])
                 gifTransIndex,
                 disposal == DISPOSE_BACKGROUND ? gifBgIndex : -1);
 
-        struct Rect rect = minRect(imgBuffer, gifFile->SWidth, gifFile->SHeight,
+        struct Rect rect;
+        if (extendFrames) {
+            rect.left = 0;
+            rect.top = 0;
+            rect.width = gifFile->SWidth;
+            rect.height = gifFile->SHeight;
+        }
+        else {
+            rect = minRect(imgBuffer, gifFile->SWidth, gifFile->SHeight,
                 gifTransIndex, FRAME_BORDER);
+        }
 
         images[i].offsetX =  rect.left;
         images[i].offsetY = -rect.top;
@@ -608,9 +623,16 @@ int main(int argc, char *argv[])
             struct Spr_image dummy;
             dummy.offsetX = 0;
             dummy.offsetY = 0;
-            dummy.width = 0;
-            dummy.height = 0;
-            dummy.raster = malloc(0);
+            if (extendFrames) {
+                dummy.width = gifFile->SWidth;
+                dummy.height = gifFile->SHeight;
+            }
+            else {
+                dummy.width = 0;
+                dummy.height = 0;
+            }
+            dummy.raster = malloc(dummy.width * dummy.height);
+            memset(dummy.raster, SPR_TRANS_IDX, dummy.width * dummy.height);
             Spr_appendSingleFrame(sprite, &dummy);
             free(dummy.raster);
         }
