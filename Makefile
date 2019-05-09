@@ -1,13 +1,15 @@
 GIFLIB=giflib-5.1.9
-CFLAGS := -std=c99 -Wall -pedantic -ggdb
-LOCAL_OBJECTS= main.o sprite.o
+BASECFLAGS=-std=c99
+DBGCFLAGS=-Wall -pedantic -ggdb
+RELEASECFLAGS=-O2
+LOCAL_OBJECTS=main.o sprite.o
 #GIFLIB_OBJECTS= $(GIFLIB)/dgif_lib.o $(GIFLIB)/gif_err.o \
 #	$(GIFLIB)/gif_hash.o $(GIFLIB)/gifalloc.o \
 #	$(GIFLIB)/openbsd-reallocarray.o
 GIFLIB_A=$(GIFLIB)/libgif.a
-OBJECTS := $(LOCAL_OBJECTS)
-TARGET_PLAT = $(shell uname)
-HOST_PLAT = $(shell uname)
+OBJECTS :=$(LOCAL_OBJECTS)
+TARGET_PLAT=$(shell uname)
+HOST_PLAT=$(shell uname)
 SDX=sdx.kit
 
 ifeq ($(findstring CYGWIN,$(TARGET_PLAT)), CYGWIN)
@@ -45,14 +47,20 @@ endif
 ifeq ($(shell uname), Darwin)
 	COMPILE_GIFLIB=true
 else
-	LDFLAGS := $(LD_FLAGS) -lm
+	LDFLAGS :=$(LD_FLAGS) -lm
+endif
+
+ifdef DEBUG
+	CFLAGS :=$(BASECFLAGS) $(DBGCFLAGS)
+else
+	CFLAGS :=$(BASECFLAGS) $(RELEASECFLAGS)
 endif
 
 ifdef COMPILE_GIFLIB
-	CFLAGS  := $(CFLAGS) -DCOMPILE_GIFLIB
-	OBJECTS := $(OBJECTS) $(GIFLIB_A)
+	CFLAGS  :=$(CFLAGS) -DCOMPILE_GIFLIB
+	OBJECTS :=$(OBJECTS) $(GIFLIB_A)
 else
-	LDFLAGS := $(LDFLAGS) -lgif
+	LDFLAGS :=$(LDFLAGS) -lgif
 endif
 
 .PHONY: all clean clean-giflib win-package win-gui
