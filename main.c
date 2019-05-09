@@ -641,6 +641,9 @@ int main(int argc, char *argv[])
         }
     }
 
+    free(imgBuffer);
+    free(prevBuffer);
+
     if (version == SPR_VER_QUAKE) {
         Spr_appendGroupFrame(sprite, delays, images, gifFile->ImageCount);
     }
@@ -672,8 +675,19 @@ int main(int argc, char *argv[])
         }
     }
 
+    free(delays);
+    for (size_t i = 0; i < gifFile->ImageCount; i++)
+        free(images[i].raster);
+    free(images);
+
+    DGifCloseFile(gifFile, &err);
+    if (err != GIF_OK) {
+        fputs("Error closing GIF file.", stderr);
+    }
+
     Spr_write(sprite, sprFileName, sprFatalError);
     Spr_free(sprite);
+
 
     return EXIT_SUCCESS;
 }

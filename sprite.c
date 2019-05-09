@@ -173,6 +173,7 @@ void Spr_free(struct Spr_Sprite *sprite)
     free(sprite->frames);
     free(sprite->palette.colors);
     free(sprite->header);
+    free(sprite);
 }
 
 static void appendFrame(struct Spr_Sprite *sprite, union frame frame)
