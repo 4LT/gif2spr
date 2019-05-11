@@ -18,7 +18,8 @@ build-windows:
         paths:
             - gif2spr.exe
             - gif2spr-gui.exe
-            - COPYING
+            - LICENSE.txt
+            - LICENSE_3rd_party
             - README.md
 
 # run tests using the binary built before
