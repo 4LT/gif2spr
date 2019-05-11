@@ -1,12 +1,10 @@
-image: 4lt4/gif2spr-build:rev001
+image: 4lt4/gif2spr-build
 
 stages:
     - build
 
 build-linux:
     stage: build
-    before_script:
-        - apt-get update && apt-get -y install libgif-dev 
     script:
         - make
 
