@@ -1,12 +1,10 @@
-image: gcc
+image: 4lt4/gif2spr-build:rev001
 
 stages:
     - build
 
 build-linux:
     stage: build
-    # instead of calling g++ directly you can also use some build toolkit like make
-    # install the necessary build tools when needed
     before_script:
         - apt-get update && apt-get -y install libgif-dev 
     script:
@@ -14,21 +12,14 @@ build-linux:
 
 build-windows:
     stage: build
-    before_script:
-        - apt-get update && apt-get -y install mingw-w64 wget gzip
     script:
-        - mkdir buildbin
-        - wget -O buildbin/tclkit.gz http://www.patthoyts.tk/tclkit/linux-x86_64/8.6.7/tclkit-8.6.7.gz
-        - wget -O buildbin/sdx.kit https://chiselapp.com/user/aspect/repository/sdx/uv/sdx-20110317.kit
-        - gunzip buildbin/tclkit.gz
-        - chmod +x buildbin/tclkit buildbin/sdx.kit
-        - export PATH=`pwd`/buildbin:$PATH
         - make TARGET_PLAT=win32 win-gui
     artifacts:
         paths:
             - gif2spr.exe
             - gif2spr-gui.exe
-            - COPYING
+            - LICENSE.txt
+            - LICENSE_3rd_party
             - README.md
 
 # run tests using the binary built before
