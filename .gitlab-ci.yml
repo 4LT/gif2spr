@@ -1,4 +1,4 @@
-image: 4lt4/gif2spr-build
+image: 4lt4/gif2spr-build:rev001
 
 stages:
     - build
