@@ -20,6 +20,7 @@ build-windows:
             - LICENSE.txt
             - LICENSE_3rd_party
             - README.md
+            - THANKS.md
 
 # run tests using the binary built before
 # test:
