@@ -680,9 +680,9 @@ int main(int argc, char *argv[])
         free(images[i].raster);
     free(images);
 
-    DGifCloseFile(gifFile, &err);
-    if (err != GIF_OK) {
-        fputs("Error closing GIF file.", stderr);
+    if (DGifCloseFile(gifFile, &err) != GIF_OK) {
+        fprintf(stderr, "%s:\n", gifFileName);
+        fprintf(stderr, "%s.\n", GifErrorString(err));
     }
 
     Spr_write(sprite, sprFileName, sprFatalError);
