@@ -41,14 +41,14 @@ Creates a sprite, but color quantization is performed matching the colors from a
 GUI
 ---
 
-Run the `gif2spr-gui.tcl` on Linux, or `gif2spr-gui.exe` on Windows.
+Run `gif2spr-gui.tcl` on Linux, or `gif2spr-gui.exe` on Windows.
 
 Building
 ========
 
-Run `make` to create a standalone executable for the CLI.
+Run `make` to create a standalone executable for the CLI on Linux.  To install, just copy gif2spr to `/usr/local/bin` or `/usr/bin`.
 
-Run `make TARGET_PLAT=win32 win-gui` to build CLI/GUI for Windows.
+Run `make TARGET_PLAT=win32 win-gui` to build CLI/GUI for Windows.  Make sure the generated executables are in the same directory for the GUI to work.
 
 Source Code
 ===========
