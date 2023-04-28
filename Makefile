@@ -1,70 +1,101 @@
-GIFLIB=giflib-5.1.4
-CFLAGS := -std=c99 -Wall -pedantic -ggdb
-LOCAL_OBJECTS= main.o sprite.o
-GIFLIB_OBJECTS= $(GIFLIB)/lib/dgif_lib.o $(GIFLIB)/lib/gif_err.o \
-	$(GIFLIB)/lib/gif_hash.o $(GIFLIB)/lib/gifalloc.o \
-	$(GIFLIB)/lib/openbsd-reallocarray.o
-OBJECTS := $(LOCAL_OBJECTS)
+GIFLIB=giflib-5.1.9
+BASECFLAGS=-std=c99
+DBGCFLAGS=-Wall -pedantic -ggdb
+RELEASECFLAGS=-O2
+LOCAL_OBJECTS=main.o sprite.o
+#GIFLIB_OBJECTS= $(GIFLIB)/dgif_lib.o $(GIFLIB)/gif_err.o \
+#	$(GIFLIB)/gif_hash.o $(GIFLIB)/gifalloc.o \
+#	$(GIFLIB)/openbsd-reallocarray.o
+GIFLIB_A=$(GIFLIB)/libgif.a
+OBJECTS :=$(LOCAL_OBJECTS)
+TARGET_PLAT=$(shell uname)
+HOST_PLAT=$(shell uname)
+SDX=sdx.kit
 
-ifeq ($(findstring CYGWIN, $(shell uname)), CYGWIN)
+ifeq ($(findstring CYGWIN,$(TARGET_PLAT)), CYGWIN)
+	WIN=1
+	NIX=1
+else ifeq ($(findstring win32,$(TARGET_PLAT)), win32)
+	WIN=1
+	NIX=0
+else ifeq ($(findstring MINGW,$(TARGET_PLAT)), MINGW)
+	WIN=1
+	NIX=0
+else
+	WIN=0
+	NIX=0
+endif
+
+ifeq ($(WIN),1)
 	COMPILE_GIFLIB=true
 	OUTPUT=gif2spr.exe
-	CC=i686-w64-mingw32-gcc
+else
+	OUTPUT=gif2spr
+endif
+
+ifeq ($(WIN)$(NIX),10)
+	CC=x86_64-w64-mingw32-gcc
+	LD=x86_64-w64-mingw32-ld
+	AR=x86_64-w64-mingw32-ar
 else
 	OUTPUT=gif2spr
 	CC=cc
+	LD=ld
+	AR=ar
 endif
 
 ifeq ($(shell uname), Darwin)
 	COMPILE_GIFLIB=true
 else
-	LDFLAGS := $(LD_FLAGS) -lm
+	LDFLAGS :=$(LD_FLAGS) -lm
+endif
+
+ifdef DEBUG
+	CFLAGS :=$(BASECFLAGS) $(DBGCFLAGS)
+else
+	CFLAGS :=$(BASECFLAGS) $(RELEASECFLAGS)
 endif
 
 ifdef COMPILE_GIFLIB
-	CFLAGS  := $(CFLAGS) -DCOMPILE_GIFLIB
-	OBJECTS := $(OBJECTS) $(GIFLIB_OBJECTS)
+	CFLAGS  :=$(CFLAGS) -DCOMPILE_GIFLIB
+	OBJECTS :=$(OBJECTS) $(GIFLIB_A)
 else
-	LDFLAGS := $(LDFLAGS) -lgif
+	LDFLAGS :=$(LDFLAGS) -lgif
 endif
 
-.PHONY: all clean clean-giflib package
+.PHONY: all clean clean-giflib win-package win-gui
 
 all: $(OUTPUT)
 
-$(GIFLIB_OBJECTS): $(GIFLIB)/Makefile
-	$(MAKE) -C $(GIFLIB) SUBDIRS=lib
+$(GIFLIB_A): $(GIFLIB)/Makefile
+	$(MAKE) -C $(GIFLIB) CC=$(CC) LD=$(LD) AR=$(AR) libgif.a
 
-$(GIFLIB)/Makefile:
-	cd $(GIFLIB) && \
-	CC=$(CC) ./configure
-
-defpal.h: defpal.h_head defpal.h_foot quakepal
-	xxd -i quakepal \
-	| sed 's/\(^.*\)quakepal/static \1 const DEFPAL/' \
-	| sed 's/^unsigned\ int.*//' \
-	| cat defpal.h_head - defpal.h_foot \
-	> defpal.h
-
-main.o: main.c defpal.h sprite.h
+main.o: main.c quakepal.h sprite.h
 	$(CC) $(CFLAGS) -c main.c
 
 sprite.o: sprite.c sprite.h
 	$(CC) $(CFLAGS) -c sprite.c
 
 $(OUTPUT): $(OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(OUTPUT) $(OBJECTS)
+	$(CC) $(LDFLAGS) -o $(OUTPUT) $(OBJECTS)
 
-package: gif2spr.zip
+win-package: gif2spr.zip
 
-gif2spr.zip: COPYING README.md $(OUTPUT)
-	zip gif2spr.zip COPYING README.md $(OUTPUT)
+gif2spr.zip: COPYING README.md gif2spr.exe gif2spr-gui.exe
+	zip gif2spr.zip COPYING README.md gif2spr.exe gif2spr-gui.exe
+
+win-gui: gif2spr-gui.exe
+
+gif2spr-gui.exe: gif2spr.exe
+	$(SDX) qwrap gif2spr-gui.tcl gif2spr-gui -runtime tclkit-gui.exe &&\
+		mv gif2spr-gui gif2spr-gui.exe
 
 clean-giflib:
-	make -C $(GIFLIB) -f Makefile distclean
+	make -C $(GIFLIB) -f Makefile clean
 
-clean:
+clean: clean-giflib
 	rm -f $(LOCAL_OBJECTS)
-	rm -f $(OUTPUT)
-	rm -f defpal.h
+	rm -f gif2spr
+	rm -f gif2spr.exe
 	rm -f gif2spr.zip
+	rm -f gif2spr-gui.exe

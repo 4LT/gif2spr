@@ -1,25 +1,30 @@
 /* sprite.c -- Functions for manipulating and writing sprites.
- * version 0.1, January 22nd, 2017
+ * version 0.2
  * 
- * Copyright (C) 2017 Seth Rader
+ * This is free and unencumbered software released into the public domain.
+ *
+ * Anyone is free to copy, modify, publish, use, compile, sell, or
+ * distribute this software, either in source code form or as a compiled
+ * binary, for any purpose, commercial or non-commercial, and by any
+ * means.
  * 
- * This software is provided 'as-is', without any express or implied
- * warranty.  In no event will the authors be held liable for any damages
- * arising from the use of this software.
+ * In jurisdictions that recognize copyright laws, the author or authors
+ * of this software dedicate any and all copyright interest in the
+ * software to the public domain. We make this dedication for the benefit
+ * of the public at large and to the detriment of our heirs and
+ * successors. We intend this dedication to be an overt act of
+ * relinquishment in perpetuity of all present and future rights to this
+ * software under copyright law.
  * 
- * Permission is granted to anyone to use this software for any purpose,
- * including commercial applications, and to alter it and redistribute it
- * freely, subject to the following restrictions:
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  * 
- * 1. The origin of this software must not be misrepresented; you must not
- *    claim that you wrote the original software. If you use this software
- *    in a product, an acknowledgment in the product documentation would be
- *    appreciated but is not required.
- * 2. Altered source versions must be plainly marked as such, and must not be
- *    misrepresented as being the original software.
- * 3. This notice may not be removed or altered from any source distribution.
- * 
- * Seth Rader      rader.seth@gmail.com
+ * For more information, please refer to <http://unlicense.org/>
  */
 #include "sprite.h"
 
@@ -28,8 +33,9 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include <limits.h>
 
-#include "defpal.h"
+#include "quakepal.h"
 
 int32_t const FRAME_SINGLE = 0;
 int32_t const FRAME_GROUP = 1;
@@ -38,12 +44,16 @@ int32_t const FRAME_GROUP = 1;
 struct header
 {
     char    ident[4];   /* "IDSP" */
-    int32_t version;    /* = 1 */
+    int32_t version;    /* = 1 for Quake, 2 for HL */
     int32_t alignment;  /* 0: vp parallel upright
                            1: facing upright
                            2: vp parallel
                            3: oriented
                            4: vp parallel oriented */ 
+    int32_t hlTexType;  /* 0: normal
+                           1: additive
+                           2: index alpha
+                           3: alpha test */
     float   radius;     /* bounding radius */
     int32_t maxWidth;   /* width/height that can hold all frames */
     int32_t maxHeight;  
@@ -76,7 +86,7 @@ union frame
 struct Spr_Sprite
 {
     struct header *header;
-    struct Spr_color *palette;
+    struct Spr_palette palette;
     union frame *frames;
     int32_t offsetX;
     int32_t offsetY;
@@ -90,17 +100,21 @@ float dist(int32_t dx, int32_t dy)
 }
 
 struct Spr_Sprite *Spr_new(
+        enum Spr_version ver,
         enum Spr_alignment alignment,
+        enum Spr_hlTextureType texType,
         int32_t maxWidth,
         int32_t maxHeight,
         enum Spr_syncType syncType,
-        struct Spr_color *palette,
+        uint16_t palColorCt,
+        struct Spr_color const *colors,
         int32_t offsetX,
         int32_t offsetY)
 {
     struct header *header;
     struct Spr_Sprite *sprite;
     int32_t dx = offsetX, dy = offsetY;
+    struct Spr_color *newColors;
 
     /* select furthest corner from upper left */
     if (-2*offsetX < maxWidth)
@@ -111,8 +125,9 @@ struct Spr_Sprite *Spr_new(
     header = malloc(sizeof(*header));
     *header = (struct header) {
         .ident = "IDSP",
-        .version = 1,
+        .version = ver,
         .alignment = alignment,
+        .hlTexType = texType,
         .radius = dist(dx, dy), 
         .maxWidth = maxWidth,
         .maxHeight = maxHeight,
@@ -121,10 +136,13 @@ struct Spr_Sprite *Spr_new(
         .syncType = syncType
     };
 
+    newColors = malloc(sizeof(*newColors) * palColorCt);
+    memcpy(newColors, colors, sizeof(*colors) * palColorCt);
+
     sprite = malloc(sizeof(*sprite));
     *sprite = (struct Spr_Sprite) {
         header,
-        palette,
+        (struct Spr_palette) {palColorCt, newColors},
         NULL,
         offsetX,
         offsetY
@@ -153,7 +171,9 @@ void Spr_free(struct Spr_Sprite *sprite)
     for (int i = 0; i < header->nFrames; i++)
         freeFrame(sprite->frames[i]);
     free(sprite->frames);
+    free(sprite->palette.colors);
     free(sprite->header);
+    free(sprite);
 }
 
 static void appendFrame(struct Spr_Sprite *sprite, union frame frame)
@@ -172,7 +192,7 @@ void Spr_appendSingleFrame(struct Spr_Sprite *sprite,
     size_t rasterSz = img->width * img->height;
     frame.single = (struct singleFrame) { FRAME_SINGLE, *img };
     frame.single.image.raster = malloc(rasterSz);
-    memcpy(&frame.single.image.raster, &img->raster, rasterSz);
+    memcpy(frame.single.image.raster, img->raster, rasterSz);
     appendFrame(sprite, frame);
 }
 
@@ -250,14 +270,55 @@ static int writeImage(struct Spr_Sprite const *sprite, struct Spr_image img,
     return 0;
 }
 
+static int writeHeader(struct header const *hdr, FILE *file,
+        char const *filename, Spr_onError_fp errCB)
+{
+    if (fwrite((void *)&hdr->ident, sizeof(hdr->ident), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->version, sizeof(hdr->version), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->alignment, sizeof(hdr->alignment), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+
+    if (hdr->version == SPR_VER_HL) {
+        if (fwrite((void *)&hdr->hlTexType, sizeof(hdr->hlTexType), 1, file)<1)
+            MS_ERR_MSG_WRITE();
+    }
+
+    if (fwrite((void *)&hdr->radius, sizeof(hdr->radius), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->maxWidth, sizeof(hdr->maxWidth), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->maxHeight, sizeof(hdr->maxHeight), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->nFrames, sizeof(hdr->nFrames), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->beamLength, sizeof(hdr->beamLength), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    if (fwrite((void *)&hdr->syncType, sizeof(hdr->syncType), 1, file) < 1)
+        MS_ERR_MSG_WRITE();
+    return 0;
+}
+
 int Spr_write(struct Spr_Sprite *sprite, char const *filename,
         Spr_onError_fp errCB)
 {
     FILE *file = fopen(filename, "wb");
     if (file == NULL)
         MS_ERR_MSG_OPEN();
-    if (fwrite((void *)sprite->header, sizeof(*sprite->header), 1, file) < 1)
-        MS_ERR_MSG_WRITE();
+//    if (fwrite((void *)sprite->header, sizeof(*sprite->header), 1, file) < 1)
+//        MS_ERR_MSG_WRITE();
+    if (writeHeader(sprite->header, file, filename, errCB))
+        return 1;
+    if (sprite->header->version == SPR_VER_HL) {
+        if (fwrite((void *)&sprite->palette.colorCt,
+                    sizeof(sprite->palette.colorCt), 1, file) < 1)
+            MS_ERR_MSG_WRITE();
+        if (fwrite((void *)sprite->palette.colors,
+                    sizeof(*sprite->palette.colors), sprite->palette.colorCt,
+                    file) < 1)
+            MS_ERR_MSG_WRITE();
+    }
     for (size_t i = 0; i < sprite->header->nFrames; i++) {
         union frame *frame = sprite->frames + i;
         if (fwrite((void *)&frame->frameType,
@@ -290,23 +351,27 @@ int Spr_write(struct Spr_Sprite *sprite, char const *filename,
     return 0;
 }
 
-int Spr_readPalette(char const *filename, struct Spr_color *palette,
+int Spr_readPalette(char const *filename, struct Spr_color *colors,
         Spr_onError_fp errCB)
 {
     FILE *file = fopen(filename, "rb");
     if (file == NULL)
         MS_ERR_MSG_OPEN();
-    if (fread(palette, sizeof(*palette), SPR_PAL_SIZE, file) < SPR_PAL_SIZE)
+    if (fread(colors, sizeof(*colors), SPR_Q_PAL_SIZE, file) < SPR_Q_PAL_SIZE)
         MS_ERR_MSG_READ();
     fclose(file);
     return 0;
 }
 
-void Spr_defaultPalette(struct Spr_color *palette)
+void Spr_defaultQPalette(struct Spr_color *colors)
 {
-    memcpy(palette, DEFPAL, sizeof(*palette) * SPR_PAL_SIZE);
+    memcpy(colors, QUAKEPAL, sizeof(*colors) * SPR_Q_PAL_SIZE);
 }
 
+// R_WEIGHT**2 + G_WEIGHT**2 + B_WEIGHT**2 <= 2**31 / 255**2  
+#define R_WEIGHT 29
+#define G_WEIGHT 59
+#define B_WEIGHT 11
 double colorDistance(struct Spr_color color1, struct Spr_color color2)
 {
     int deltas[3];
@@ -314,16 +379,20 @@ double colorDistance(struct Spr_color color1, struct Spr_color color2)
         deltas[i] = (int)(color1.rgb[i]) - color2.rgb[i];
         deltas[i]*= deltas[i];
     }
-    return sqrt(deltas[0] + deltas[1] + deltas[2]);
+    return sqrt(
+            R_WEIGHT * R_WEIGHT * deltas[0] + 
+            G_WEIGHT * G_WEIGHT * deltas[1] + 
+            B_WEIGHT * B_WEIGHT * deltas[2]);
 }
 
-char Spr_nearestIndex(struct Spr_color *palette, struct Spr_color color)
+uint8_t Spr_nearestIndex(struct Spr_Sprite *sprite, struct Spr_color color)
 {
-    double minDist = 255 * 3;
+    struct Spr_palette pal = sprite->palette;
+    double minDist = INT_MAX;
     char nearestIndex = 0;
-    for (int i = 0; i < SPR_PAL_SIZE; i++) {
-        if (i != SPR_TRANS_INDEX) {
-            double distance = colorDistance(palette[i], color);
+    for (int i = 0; i < pal.colorCt; i++) {
+        if (i != pal.colorCt - 1) {
+            double distance = colorDistance(pal.colors[i], color);
             if (distance < minDist) {
                 minDist = distance;
                 nearestIndex = i;
@@ -331,4 +400,14 @@ char Spr_nearestIndex(struct Spr_color *palette, struct Spr_color color)
         }
     }
     return nearestIndex;
+}
+
+uint8_t Spr_brightness(struct Spr_color color) 
+{
+    uint32_t maxBright = R_WEIGHT * 255 + G_WEIGHT * 255 + B_WEIGHT * 255;
+    uint32_t bright =
+        R_WEIGHT * color.rgb[0] +
+        G_WEIGHT * color.rgb[1] +
+        B_WEIGHT * color.rgb[2];
+    return 255 * bright / maxBright;
 }
