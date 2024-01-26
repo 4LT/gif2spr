@@ -53,4 +53,4 @@ Run `make TARGET_PLAT=win32 win-gui` to build CLI/GUI for Windows.  Make sure th
 Source Code
 ===========
 
-Available at https://gitlab.com/4LT/gif2spr
+Available at https://github.com/4LT/gif2spr
