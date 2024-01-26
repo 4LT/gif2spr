@@ -1,5 +1,5 @@
 GIFLIB=giflib-5.1.9
-BASECFLAGS=-std=c99
+BASECFLAGS=-std=c11
 DBGCFLAGS=-Wall -pedantic -ggdb
 RELEASECFLAGS=-O2
 LOCAL_OBJECTS=main.o sprite.o

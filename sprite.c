@@ -124,7 +124,7 @@ struct Spr_Sprite *Spr_new(
 
     header = malloc(sizeof(*header));
     *header = (struct header) {
-        .ident = "IDSP",
+        .ident = { 'I', 'D', 'S', 'P' },
         .version = ver,
         .alignment = alignment,
         .hlTexType = texType,
